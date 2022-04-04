@@ -22,6 +22,13 @@ class BuildCommand : RootCommand
 
     public static int Handle(string? os, string tag, string? asDockerfile, string project)
     {
+        string? containerEngine = ContainerEngine.Command;
+        if (containerEngine is null && asDockerfile is null)
+        {
+            Console.Error.WriteLine("Install podman or docker to build images.");
+            return 1;
+        }
+
         // The working directory will be used as the image build context,
         // verify the project we're build is under it.
         string projectFullPath = Path.GetFullPath(project);
@@ -108,7 +115,7 @@ class BuildCommand : RootCommand
         {
             return 0;
         }
-        var process = Process.Start("podman", new[] { "build", "-f", dockerFileName, "-t", tag, "." });
+        var process = Process.Start(containerEngine!, new[] { "build", "-f", dockerFileName, "-t", tag, "." });
         process.WaitForExit();
         File.Delete(dockerFileName);
         if (process.ExitCode != 0)
