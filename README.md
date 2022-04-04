@@ -3,8 +3,9 @@
 A .NET global tool to create container images from .NET projects, because _life is too short to write Dockerfiles_.
 
 - The application image is built using a multi-stage build: first the application is published in one image, and then the result is copied into a runtime image.
-- Images are chosen that support to the .NET version targetted in the project (`TargetFramework`).
+- Images are chosen that support the .NET version targetted in the project (`TargetFramework`).
 - The image base OS can be chosen.
+- Both `podman` and `docker` are supported to build the image.
 
 # Usage
 
