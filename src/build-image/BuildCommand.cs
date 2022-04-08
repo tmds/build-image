@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.IO;
 using System.Diagnostics;
 
 class BuildCommand : RootCommand
@@ -16,16 +17,17 @@ class BuildCommand : RootCommand
         Add(asDockerfileOption);
         Add(projectOption);
 
-        this.SetHandler((string? os, string tag, string? asDockerfile, string project) => Handle(os, tag, asDockerfile, project),
+        this.SetHandler((IConsole console,
+                         string? os, string tag, string? asDockerfile, string project) => Handle(console, os, tag, asDockerfile, project),
                         osOption, tagOption, asDockerfileOption, projectOption);
     }
 
-    public static int Handle(string? os, string tag, string? asDockerfile, string project)
+    public static int Handle(IConsole console, string? os, string tag, string? asDockerfile, string project)
     {
-        string? containerEngine = ContainerEngine.Command;
+        ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
         {
-            Console.Error.WriteLine("Install podman or docker to build images.");
+            console.Error.WriteLine("Install podman or docker to build images.");
             return 1;
         }
 
@@ -34,7 +36,7 @@ class BuildCommand : RootCommand
         string projectFullPath = Path.GetFullPath(project);
         if (!projectFullPath.StartsWith(Directory.GetCurrentDirectory()))
         {
-            Console.Error.WriteLine($"Project must be a subdirectory of the current working directory.");
+            console.Error.WriteLine($"Project must be a subdirectory of the current working directory.");
             return 1;
         }
 
@@ -54,7 +56,7 @@ class BuildCommand : RootCommand
         }
         if (projectFile is null)
         {
-            Console.Error.WriteLine($"Project {projectFullPath} not found.");
+            console.Error.WriteLine($"Project {projectFullPath} not found.");
             return 1;
         }
 
@@ -66,11 +68,11 @@ class BuildCommand : RootCommand
         {
             if (projectInformation.DotnetVersion is null)
             {
-                Console.Error.WriteLine($"Cannot determine project target framework version.");
+                console.Error.WriteLine($"Cannot determine project target framework version.");
             }
             if (projectInformation.AssemblyName is null)
             {
-                Console.Error.WriteLine($"Cannot determine application assembly name.");
+                console.Error.WriteLine($"Cannot determine application assembly name.");
             }
             return 1;
         }
@@ -111,16 +113,17 @@ class BuildCommand : RootCommand
         var dockerfileContent = DotnetDockerfileBuilder.BuildDockerFile(options);
         string dockerFileName = asDockerfile ?? "Dockerfile." + Path.GetRandomFileName();
         File.WriteAllText(dockerFileName, dockerfileContent);
+
         if (asDockerfile is not null)
         {
             return 0;
         }
-        var process = Process.Start(containerEngine!, new[] { "build", "-f", dockerFileName, "-t", tag, "." });
-        process.WaitForExit();
+
+        bool buildSuccessful = containerEngine!.TryBuild(console, dockerFileName, tag, contextDir: ".");
         File.Delete(dockerFileName);
-        if (process.ExitCode != 0)
+        if (!buildSuccessful)
         {
-            Console.Error.WriteLine($"Failed to build image.");
+            console.Error.WriteLine($"Failed to build image.");
             return 1;
         }
 
