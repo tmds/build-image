@@ -4,32 +4,65 @@ using System.Diagnostics;
 
 class ContainerEngine
 {
-    private const string NotFound = "";
-    private static string? s_command;
+    public string Command { get; }
+    public Version Version { get; }
 
-    private readonly string _command;
-
-    private ContainerEngine(string command)
+    public bool SupportsCacheMount
     {
-        _command = command;
+        get
+        {
+            if (Command == "podman")
+            {
+                return Version.Major >= 4;
+            }
+            return true;
+        }
+    }
+
+    private ContainerEngine(string command, Version version)
+    {
+        Command = command;
+        Version = version;
     }
 
     public static ContainerEngine? TryCreate()
     {
-        string? command = GetContainerCommand();
+        string? command = null;
+        Version? version = null;
+        foreach (var cmd in new[] { "podman", "docker" })
+        {
+            try
+            {
+                using var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = cmd,
+                    ArgumentList = { "version", "-f", "{{ .Client.Version }}" },
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
+                })!;
+                process.WaitForExit();
+                string stdout = process.StandardOutput.ReadToEnd().Trim();
+                Version.TryParse(stdout, out version);
+                command = cmd;
+                break;
+            }
+            catch
+            { }
+        }
+
         if (command is null)
         {
             return null;
         }
 
-        return new ContainerEngine(command);
+        return new ContainerEngine(command, version ?? new Version());
     }
 
     public bool TryBuild(IConsole console, string dockerFileName, string tag, string contextDir)
     {
         var psi = new ProcessStartInfo
         {
-            FileName = _command,
+            FileName = Command,
             ArgumentList = {  "build", "-f", dockerFileName, "-t", tag, "." },
             RedirectStandardError = true,
             RedirectStandardInput = true,
@@ -60,50 +93,6 @@ class ContainerEngine
 
         process.WaitForExit();
 
-        return process.ExitCode != 0;
-    }
-
-    public static string? GetContainerCommand()
-    {
-        if (s_command is null)
-        {
-            foreach (var command in new[] { "podman", "docker" })
-            {
-                if (HasContainerCommand(command))
-                {
-                    s_command = command;
-                    break;
-                }
-            }
-            if (s_command is null)
-            {
-                s_command = NotFound;
-            }
-        }
-        if (s_command == NotFound)
-        {
-            return null;
-        }
-        return s_command;
-    }
-
-    private static bool HasContainerCommand(string command)
-    {
-        try
-        {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = command,
-                ArgumentList = { "version" },
-                RedirectStandardError = true,
-                RedirectStandardOutput = true
-            })!;
-            process.WaitForExit();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return process.ExitCode == 0;
     }
 }

@@ -6,6 +6,7 @@ A .NET global tool to create container images from .NET projects, because _life 
 - Images are chosen that support the .NET version targetted in the project (`TargetFramework`).
 - The image base OS can be chosen.
 - Both `podman` and `docker` are supported to build the image.
+- Caches NuGet packages accross builds.
 
 # Usage
 
