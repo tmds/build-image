@@ -77,7 +77,7 @@ class BuildCommand : RootCommand
             return 1;
         }
         string dotnetVersion = projectInformation.DotnetVersion;
-        DotnetDockerfileBuilderOptions options = new()
+        DotnetDockerfileBuilderOptions buildOptions = new()
         {
             ProjectPath = project,
             AssemblyName = projectInformation.AssemblyName
@@ -93,10 +93,10 @@ class BuildCommand : RootCommand
             {
                 baseOs = "ubi8"; // TODO: switch based on dotnetVersion
             }
-            options.FromImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}-runtime";
-            options.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}";
-            options.WorkDir = "${DOTNET_APP_PATH}/../src";
-            options.OutputDir = "${DOTNET_APP_PATH}";
+            buildOptions.FromImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}-runtime";
+            buildOptions.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}";
+            buildOptions.WorkDir = "${DOTNET_APP_PATH}/../src";
+            buildOptions.OutputDir = "${DOTNET_APP_PATH}";
         }
         else
         {
@@ -105,12 +105,13 @@ class BuildCommand : RootCommand
             {
                 imageTag += $"-{os}";
             }
-            options.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
-            options.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{imageTag}";
-            options.WorkDir = "/app";
-            options.OutputDir = "/app";
+            buildOptions.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
+            buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{imageTag}";
+            buildOptions.WorkDir = "/app";
+            buildOptions.OutputDir = "/app";
         }
-        var dockerfileContent = DotnetDockerfileBuilder.BuildDockerFile(options);
+        buildOptions.SupportsCacheMount = containerEngine is null ? false : containerEngine.SupportsCacheMount;
+        var dockerfileContent = DotnetDockerfileBuilder.BuildDockerFile(buildOptions);
         string dockerFileName = asDockerfile ?? "Dockerfile." + Path.GetRandomFileName();
         File.WriteAllText(dockerFileName, dockerfileContent);
 

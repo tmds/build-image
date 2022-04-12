@@ -8,6 +8,7 @@ public class DotnetDockerfileBuilderOptions
     public string? WorkDir { get; set; }
     public string? OutputDir { get; set; }
     public string? AssemblyName { get; set; }
+    public bool SupportsCacheMount { get; set; }
 }
 
 class DotnetDockerfileBuilder
@@ -28,10 +29,11 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"");
         sb.AppendLine($"# Copy everything");
         sb.AppendLine($"COPY . ./");
-        sb.AppendLine($"# Restore as distinct layers");
-        sb.AppendLine($"RUN dotnet restore {projectPath}");
+        sb.AppendLine($"# Restore");
+        string cacheMount = options.SupportsCacheMount ? "--mount=type=cache,id=nuget,target=${HOME}/.nuget/packages,Z " : "";
+        sb.AppendLine($"RUN {cacheMount}dotnet restore {projectPath}");
         sb.AppendLine($"# Build and publish a release");
-        sb.AppendLine($"RUN dotnet publish -c Release -o {workDir}/out {projectPath}");
+        sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {workDir}/out {projectPath}");
         sb.AppendLine($"");
 
         sb.AppendLine($"# Build runtime image");
