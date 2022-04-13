@@ -94,8 +94,6 @@ class BuildCommand : RootCommand
             }
             buildOptions.FromImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}-runtime";
             buildOptions.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}";
-            buildOptions.WorkDir = "${DOTNET_APP_PATH}/../src";
-            buildOptions.OutputDir = "${DOTNET_APP_PATH}";
         }
         else
         {
@@ -106,8 +104,6 @@ class BuildCommand : RootCommand
             }
             buildOptions.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
             buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{imageTag}";
-            buildOptions.WorkDir = "/app";
-            buildOptions.OutputDir = "/app";
         }
         if (containerEngine is not null)
         {
