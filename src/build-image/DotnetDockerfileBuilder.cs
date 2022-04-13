@@ -5,8 +5,6 @@ public class DotnetDockerfileBuilderOptions
     public string? BuildImage { get; set; }
     public string? FromImage { get; set; }
     public string? ProjectPath { get; set; }
-    public string? WorkDir { get; set; }
-    public string? OutputDir { get; set; }
     public string? AssemblyName { get; set; }
     public bool SupportsCacheMount { get; set; }
     public bool SupportsCacheMountSELinuxRelabling { get; set; }
@@ -19,34 +17,26 @@ class DotnetDockerfileBuilder
         string fromImage = options.FromImage ?? throw new ArgumentNullException(nameof(options.FromImage));
         string buildImage = options.BuildImage ?? throw new ArgumentNullException(nameof(options.BuildImage));
         string projectPath = options.ProjectPath ?? throw new ArgumentNullException(nameof(options.ProjectPath));
-        string workDir = options.WorkDir ?? throw new ArgumentNullException(nameof(options.WorkDir));
         string assemblyName = options.AssemblyName ?? throw new ArgumentNullException(nameof(options.AssemblyName));
-        string? outputDir = options.OutputDir;
 
         var sb = new StringBuilder();
 
+        sb.AppendLine($"# Publish application");
         sb.AppendLine($"FROM {buildImage} AS build-env");
-        sb.AppendLine($"WORKDIR {workDir}");
-        sb.AppendLine($"");
-        sb.AppendLine($"# Copy everything");
+        sb.AppendLine("USER 0");
+        sb.AppendLine($"WORKDIR /src");
         sb.AppendLine($"COPY . ./");
-        sb.AppendLine($"# Restore");
         string relabel = options.SupportsCacheMountSELinuxRelabling ? ",Z" : "";
         string cacheMount = options.SupportsCacheMount ? $"--mount=type=cache,id=nuget,target=${{HOME}}/.nuget/packages{relabel} " : "";
         sb.AppendLine($"RUN {cacheMount}dotnet restore {projectPath}");
-        sb.AppendLine($"# Build and publish a release");
-        sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {workDir}/out {projectPath}");
+        sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o /out {projectPath}");
         sb.AppendLine($"");
 
-        sb.AppendLine($"# Build runtime image");
+        sb.AppendLine($"# Build application image");
         sb.AppendLine($"FROM {fromImage}");
-        if (outputDir is not null)
-        {
-            sb.AppendLine($"WORKDIR {outputDir}");
-        }
+        sb.AppendLine($"COPY --from=build-env /out /app");
         sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");
-        sb.AppendLine($"COPY --from=build-env {workDir}/out .");
-        sb.AppendLine($"CMD [\"dotnet\", \"{assemblyName}\"]");
+        sb.AppendLine($"CMD [\"dotnet\", \"/app/{assemblyName}\"]");
         return sb.ToString();
     }
 }
