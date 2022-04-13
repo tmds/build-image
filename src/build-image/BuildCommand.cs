@@ -59,7 +59,14 @@ class BuildCommand : RootCommand
             return 1;
         }
 
-        Console.WriteLine($"Building image '{tag}' from project {projectFullPath}.");
+        if (asDockerfile is null)
+        {
+            console.WriteLine($"Building image '{tag}' from project '{projectFile}'.");
+        }
+        else
+        {
+            console.WriteLine($"Creating Dockerfile '{asDockerfile}' for project '{projectFile}'.");
+        }
 
         // Find out .NET version and assembly name.
         ProjectInformation projectInformation = ProjectReader.ReadProjectInfo(projectFile);
@@ -116,6 +123,11 @@ class BuildCommand : RootCommand
 
         if (asDockerfile is not null)
         {
+            if (containerEngine is not null)
+            {
+                console.WriteLine("To build the image, run:");
+                console.WriteLine(containerEngine.GetBuildCommandLine(dockerFileName, tag, contextDir: "."));
+            }
             return 0;
         }
 
