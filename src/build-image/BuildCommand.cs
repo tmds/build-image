@@ -1,28 +1,27 @@
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.Diagnostics;
 
 class BuildCommand : RootCommand
 {
     public BuildCommand() :
-        base("Build an image from a .NET project.")
+        base("Build a container image from a .NET project.")
     {
-        var osOption = new Option<string>("--os");
-        var tagOption = new Option<string>("--tag", getDefaultValue: () => "dotnet-app");
-        var asDockerfileOption = new Option<string>("--as-dockerfile");
-        var projectOption = new Option<string>("--project", getDefaultValue: () => ".");
+        var baseOption = new Option<string>(new[] { "--base", "-b" }, "Flavor of the base image");
+        var tagOption = new Option<string>(new[] { "--tag", "-t" }, getDefaultValue: () => "dotnet-app", "Name for the built image");
+        var asDockerfileOption = new Option<string>("--as-dockerfile", "Generates a Dockerfile with the specified name");
+        var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
 
-        Add(osOption);
+        Add(baseOption);
         Add(tagOption);
         Add(asDockerfileOption);
-        Add(projectOption);
+        Add(projectArg);
 
         this.SetHandler((IConsole console,
                          string? os, string tag, string? asDockerfile, string project) => Handle(console, os, tag, asDockerfile, project),
-                        osOption, tagOption, asDockerfileOption, projectOption);
+                        baseOption, tagOption, asDockerfileOption, projectArg);
     }
 
-    public static int Handle(IConsole console, string? os, string tag, string? asDockerfile, string project)
+    public static int Handle(IConsole console, string? baseFlavor, string tag, string? asDockerfile, string project)
     {
         ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
@@ -84,11 +83,11 @@ class BuildCommand : RootCommand
         };
 
         // Build the image.
-        os ??= "";
-        if (os.StartsWith("ubi"))
+        baseFlavor ??= "";
+        if (baseFlavor.StartsWith("ubi"))
         {
             string versionNoDot = dotnetVersion.Replace(".", "");
-            string baseOs = os;
+            string baseOs = baseFlavor;
             if (baseOs == "ubi")
             {
                 baseOs = "ubi8"; // TODO: switch based on dotnetVersion
@@ -101,9 +100,9 @@ class BuildCommand : RootCommand
         else
         {
             string imageTag = dotnetVersion;
-            if (!string.IsNullOrEmpty(os))
+            if (!string.IsNullOrEmpty(baseFlavor))
             {
-                imageTag += $"-{os}";
+                imageTag += $"-{baseFlavor}";
             }
             buildOptions.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
             buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{imageTag}";
