@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.IO;
 using System.Diagnostics;
+using System.Text;
 
 class ContainerEngine
 {
@@ -71,21 +72,7 @@ class ContainerEngine
 
     public bool TryBuild(IConsole console, string dockerFileName, string tag, string contextDir)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = Command,
-            ArgumentList = {  "build", "-f", dockerFileName, "-t", tag, "." },
-            RedirectStandardError = true,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true
-        };
-
-        if (Command == Docker)
-        {
-            // Support cache mounts.
-            psi.Environment["DOCKER_BUILDKIT"] = "1";
-        }
-
+        var psi = GetBuidCommand(dockerFileName, tag, contextDir).AsProcessStartInfo();
         using var process = Process.Start(psi)!;
 
         process.ErrorDataReceived += (sender, e) =>
@@ -111,5 +98,76 @@ class ContainerEngine
         process.WaitForExit();
 
         return process.ExitCode == 0;
+    }
+
+    internal string GetBuildCommandLine(string dockerFileName, string tag, string contextDir)
+    {
+        return GetBuidCommand(dockerFileName, tag, contextDir).GetCommandLine();
+    }
+
+    private ProcessCommand GetBuidCommand(string dockerFileName, string tag, string contextDir)
+    {
+        ProcessCommand command = new()
+        {
+            FileName = Command,
+            Arguments = { "build", "-f", dockerFileName, "-t", tag, "." }
+        };
+
+        if (Command == Docker)
+        {
+            // Support cache mounts.
+            command.EnvironmentVariables.Add(("DOCKER_BUILDKIT", "1"));
+        }
+
+        return command;
+    }
+
+    class ProcessCommand
+    {
+        public string FileName { get; set; } = null!;
+        public List<string> Arguments { get; } = new();
+        public List<(string, string)> EnvironmentVariables { get; } = new();
+
+        public ProcessStartInfo AsProcessStartInfo()
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = FileName,
+                RedirectStandardError = true,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true
+            };
+
+            foreach (var arg in Arguments)
+            {
+                psi.ArgumentList.Add(arg);
+            }
+
+            foreach (var env in EnvironmentVariables)
+            {
+                psi.Environment[env.Item1] = env.Item2;
+            }
+
+            return psi;
+        }
+
+        public string GetCommandLine()
+        {
+            StringBuilder sb = new();
+
+            foreach (var env in EnvironmentVariables)
+            {
+                sb.Append($"{env.Item1}={env.Item2} ");
+            }
+
+            sb.Append(FileName);
+
+            foreach (var arg in Arguments)
+            {
+                sb.Append($" {arg}");
+            }
+
+            return sb.ToString();
+        }
     }
 }
