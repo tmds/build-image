@@ -109,7 +109,11 @@ class BuildCommand : RootCommand
             buildOptions.WorkDir = "/app";
             buildOptions.OutputDir = "/app";
         }
-        buildOptions.SupportsCacheMount = containerEngine is null ? false : containerEngine.SupportsCacheMount;
+        if (containerEngine is not null)
+        {
+            buildOptions.SupportsCacheMount = containerEngine.SupportsCacheMount;
+            buildOptions.SupportsCacheMountSELinuxRelabling = containerEngine.SupportsCacheMountSELinuxRelabling;
+        }
         var dockerfileContent = DotnetDockerfileBuilder.BuildDockerFile(buildOptions);
         string dockerFileName = asDockerfile ?? "Dockerfile." + Path.GetRandomFileName();
         File.WriteAllText(dockerFileName, dockerfileContent);

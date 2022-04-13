@@ -9,6 +9,7 @@ public class DotnetDockerfileBuilderOptions
     public string? OutputDir { get; set; }
     public string? AssemblyName { get; set; }
     public bool SupportsCacheMount { get; set; }
+    public bool SupportsCacheMountSELinuxRelabling { get; set; }
 }
 
 class DotnetDockerfileBuilder
@@ -30,7 +31,8 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"# Copy everything");
         sb.AppendLine($"COPY . ./");
         sb.AppendLine($"# Restore");
-        string cacheMount = options.SupportsCacheMount ? "--mount=type=cache,id=nuget,target=${HOME}/.nuget/packages,Z " : "";
+        string relabel = options.SupportsCacheMountSELinuxRelabling ? ",Z" : "";
+        string cacheMount = options.SupportsCacheMount ? $"--mount=type=cache,id=nuget,target=${{HOME}}/.nuget/packages{relabel} " : "";
         sb.AppendLine($"RUN {cacheMount}dotnet restore {projectPath}");
         sb.AppendLine($"# Build and publish a release");
         sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {workDir}/out {projectPath}");

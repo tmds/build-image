@@ -4,6 +4,9 @@ using System.Diagnostics;
 
 class ContainerEngine
 {
+    public const string Docker = "docker";
+    public const string Podman = "podman";
+
     public string Command { get; }
     public Version Version { get; }
 
@@ -11,11 +14,19 @@ class ContainerEngine
     {
         get
         {
-            if (Command == "podman")
+            if (Command == Podman)
             {
                 return Version.Major >= 4;
             }
             return true;
+        }
+    }
+
+    public bool SupportsCacheMountSELinuxRelabling
+    {
+        get
+        {
+            return SupportsCacheMount && Command == Podman;
         }
     }
 
@@ -29,7 +40,7 @@ class ContainerEngine
     {
         string? command = null;
         Version? version = null;
-        foreach (var cmd in new[] { "podman", "docker" })
+        foreach (var cmd in new[] { Podman, Docker })
         {
             try
             {
@@ -68,6 +79,12 @@ class ContainerEngine
             RedirectStandardInput = true,
             RedirectStandardOutput = true
         };
+
+        if (Command == Docker)
+        {
+            // Support cache mounts.
+            psi.Environment["DOCKER_BUILDKIT"] = "1";
+        }
 
         using var process = Process.Start(psi)!;
 
