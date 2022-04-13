@@ -10,7 +10,7 @@
     <Authors>Tom Deseyn</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
-    <PackageId>Tmds.BuildImage</PackageId>
+    <PackageId>dotnet-build-image</PackageId>
     <Version>0.1.0</Version>
   </PropertyGroup>
 

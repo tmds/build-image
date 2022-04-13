@@ -13,55 +13,52 @@ A .NET global tool to create container images from .NET projects, because _life 
 Install the tool:
 
 ```
-$ dotnet tool install -g --add-source https://www.myget.org/F/tmds --version '*-*' Tmds.BuildImage
+$ dotnet tool install -g --add-source https://www.myget.org/F/tmds --version '*-*' dotnet-build-image
 ```
 
 Create an app:
 ```
-$ dotnet new console -o console
-$ cd console
+$ dotnet new web -o web
+$ cd web
 ```
 
 Build an image:
 ```
-$ dotnet build-image
-Building image 'dotnet-app' from project /tmp/repos/console.
 [1/2] STEP 1/5: FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
 [1/2] STEP 2/5: WORKDIR /app
 --> Using cache 19c7be895c6c22f77f807ed3bb15f5f5b914899e9bbc76de8041bf68e391d4db
 --> 19c7be895c6
 [1/2] STEP 3/5: COPY . ./
---> baf4041d900
+--> 619d48ea256
 [1/2] STEP 4/5: RUN dotnet restore .
   Determining projects to restore...
-  Restored /app/console.csproj (in 136 ms).
---> e3c2f3e15c8
-[1/2] STEP 5/5: RUN dotnet publish -c Release -o /app/out .
+  Restored /app/web.csproj (in 158 ms).
+--> 92b7017e3f7
+[1/2] STEP 5/5: RUN dotnet publish --no-restore -c Release -o /app/out .
 Microsoft (R) Build Engine version 17.1.0+ae57d105c for .NET
 Copyright (C) Microsoft Corporation. All rights reserved.
 
-  Determining projects to restore...
-  All projects are up-to-date for restore.
-  console -> /app/bin/Release/net6.0/console.dll
-  console -> /app/out/
---> 5a95d5eb0dd
-[2/2] STEP 1/4: FROM mcr.microsoft.com/dotnet/aspnet:6.0
-[2/2] STEP 2/4: WORKDIR /app
+  web -> /app/bin/Release/net6.0/web.dll
+  web -> /app/out/
+--> 08310738cee
+[2/2] STEP 1/5: FROM mcr.microsoft.com/dotnet/aspnet:6.0
+[2/2] STEP 2/5: WORKDIR /app
 --> Using cache 9cb5e9baedc4fea3023f8f3d9874dfaac8580ab898fdcf5e21848291b640d85e
 --> 9cb5e9baedc
-[2/2] STEP 3/4: COPY --from=build-env /app/out .
---> f56daa1108f
-[2/2] STEP 4/4: CMD ["dotnet", "console.dll"]
+[2/2] STEP 3/5: ENV ASPNETCORE_URLS=http://*:8080
+--> 4fbf1b4d0be
+[2/2] STEP 4/5: COPY --from=build-env /app/out .
+--> bfaa4823a77
+[2/2] STEP 5/5: CMD ["dotnet", "web.dll"]
 [2/2] COMMIT dotnet-app
---> 925c61e439e
+--> 7d160587c6b
 Successfully tagged localhost/dotnet-app:latest
-925c61e439e6269b92d6abec23956085f3d4fe170bfd70aa98597ee922c2a29d
+7d160587c6b0489b94eed5091c4561d77d214c01b114562a0f903d5294481732
 ```
 
 Run the image:
 ```
-$ podman run dotnet-app
-Hello, World!
+$ podman run -p 8080:8080 dotnet-app
 ```
 
 # Options
@@ -69,21 +66,23 @@ Hello, World!
 ```
 $ dotnet build-image --help
 Description:
-  Build an image from a .NET project.
+  Build a container image from a .NET project.
 
 Usage:
-  build-image [options]
+  build-image [<PROJECT>] [options]
+
+Arguments:
+  <PROJECT>  .NET project to build [default: .]
 
 Options:
-  --os <os>
-  --tag <tag>                      [default: dotnet-app]
-  --as-dockerfile <as-dockerfile>
-  --project <project>              [default: .]
+  -b, --base <base>                Flavor of the base image
+  -t, --tag <tag>                  Name for the built image [default: dotnet-app]
+  --as-dockerfile <as-dockerfile>  Generates a Dockerfile with the specified name
   --version                        Show version information
   -?, -h, --help                   Show help and usage information
 ```
 
-The `--os` option can be used to select the .NET base image.
+The `--base` option can be used to select the .NET base image.
 When not specified, Microsoft images from `mcr.microsoft.com` are used.
 When set to `ubi`, Red Hat images from `registry.access.redhat.com` are used.
 When set to another value, like `alpine`, the corresponding Microsoft images are used.
