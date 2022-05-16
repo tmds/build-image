@@ -11,11 +11,17 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
     <PackageId>dotnet-build-image</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
+    <Description>Build a container image from a .NET app.</Description>
+    <PackageTags>container;image;podman;docker</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="System.CommandLine" Version="2.0.*-*" />
   </ItemGroup>
 
