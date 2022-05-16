@@ -72,32 +72,9 @@ class ContainerEngine
 
     public bool TryBuild(IConsole console, string dockerFileName, string tag, string contextDir)
     {
-        var psi = GetBuidCommand(dockerFileName, tag, contextDir).AsProcessStartInfo();
-        using var process = Process.Start(psi)!;
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                console.Error.WriteLine(e.Data);
-            }
-        };
-
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data is not null)
-            {
-                console.Out.WriteLine(e.Data);
-            }
-        };
-
-        process.StandardInput.Close();
-        process.BeginErrorReadLine();
-        process.BeginOutputReadLine();
-
-        process.WaitForExit();
-
-        return process.ExitCode == 0;
+        ProcessCommand command = GetBuidCommand(dockerFileName, tag, contextDir);
+        int exitCode = command.Run(console);
+        return exitCode == 0;
     }
 
     internal string GetBuildCommandLine(string dockerFileName, string tag, string contextDir)
@@ -122,13 +99,43 @@ class ContainerEngine
         return command;
     }
 
+    public bool TryPush(IConsole console, string tag)
+    {
+        ProcessCommand command = new()
+        {
+            FileName = Command,
+            Arguments = { "push", tag }
+        };
+
+        return command.Run(console) == 0;
+    }
+
     class ProcessCommand
     {
         public string FileName { get; set; } = null!;
         public List<string> Arguments { get; } = new();
         public List<(string, string)> EnvironmentVariables { get; } = new();
 
-        public ProcessStartInfo AsProcessStartInfo()
+        public string GetCommandLine()
+        {
+            StringBuilder sb = new();
+
+            foreach (var env in EnvironmentVariables)
+            {
+                sb.Append($"{env.Item1}={env.Item2} ");
+            }
+
+            sb.Append(FileName);
+
+            foreach (var arg in Arguments)
+            {
+                sb.Append($" {arg}");
+            }
+
+            return sb.ToString();
+        }
+
+        public int Run(IConsole console)
         {
             var psi = new ProcessStartInfo
             {
@@ -148,26 +155,31 @@ class ContainerEngine
                 psi.Environment[env.Item1] = env.Item2;
             }
 
-            return psi;
-        }
+            using var process = Process.Start(psi)!;
 
-        public string GetCommandLine()
-        {
-            StringBuilder sb = new();
-
-            foreach (var env in EnvironmentVariables)
+            process.ErrorDataReceived += (sender, e) =>
             {
-                sb.Append($"{env.Item1}={env.Item2} ");
-            }
+                if (e.Data is not null)
+                {
+                    console.Error.WriteLine(e.Data);
+                }
+            };
 
-            sb.Append(FileName);
-
-            foreach (var arg in Arguments)
+            process.OutputDataReceived += (sender, e) =>
             {
-                sb.Append($" {arg}");
-            }
+                if (e.Data is not null)
+                {
+                    console.Out.WriteLine(e.Data);
+                }
+            };
 
-            return sb.ToString();
+            process.StandardInput.Close();
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+
+            process.WaitForExit();
+
+            return process.ExitCode;
         }
     }
 }

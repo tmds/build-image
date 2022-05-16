@@ -77,6 +77,7 @@ Arguments:
 Options:
   -b, --base <base>                Flavor of the base image
   -t, --tag <tag>                  Name for the built image [default: dotnet-app]
+  --push                           After the build, push the image to the repository
   --as-dockerfile <as-dockerfile>  Generates a Dockerfile with the specified name
   --version                        Show version information
   -?, -h, --help                   Show help and usage information

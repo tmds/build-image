@@ -11,19 +11,22 @@ class BuildCommand : RootCommand
         var baseOption = new Option<string>(new[] { "--base", "-b" }, "Flavor of the base image");
         var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image [default: {DefaultTag}]");
         var asDockerfileOption = new Option<string>("--as-dockerfile", "Generates a Dockerfile with the specified name");
-        var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
+        var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
 
         Add(baseOption);
         Add(tagOption);
+        Add(pushOption);
         Add(asDockerfileOption);
+
+        var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
         Add(projectArg);
 
         this.SetHandler((IConsole console,
-                         string? os, string tag, string? asDockerfile, string project) => Handle(console, os, tag, asDockerfile, project),
-                        baseOption, tagOption, asDockerfileOption, projectArg);
+                         string? os, string tag, string? asDockerfile, string project, bool push) => Handle(console, os, tag, asDockerfile, project, push),
+                        baseOption, tagOption, asDockerfileOption, projectArg, pushOption);
     }
 
-    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project)
+    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project, bool push)
     {
         ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
@@ -140,6 +143,17 @@ class BuildCommand : RootCommand
         {
             console.Error.WriteLine($"Failed to build image.");
             return 1;
+        }
+
+        if (push)
+        {
+            console.WriteLine($"Pushing image '{tag}' to repository.");
+            bool pushSuccesful = containerEngine!.TryPush(console, tag);
+            if (!pushSuccesful)
+            {
+                console.Error.WriteLine($"Failed to push image.");
+                return 1;
+            }
         }
 
         return 0;
