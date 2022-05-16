@@ -3,11 +3,13 @@ using System.CommandLine.IO;
 
 class BuildCommand : RootCommand
 {
+    private const string DefaultTag = "dotnet-app";
+
     public BuildCommand() :
         base("Build a container image from a .NET project.")
     {
         var baseOption = new Option<string>(new[] { "--base", "-b" }, "Flavor of the base image");
-        var tagOption = new Option<string>(new[] { "--tag", "-t" }, getDefaultValue: () => "dotnet-app", "Name for the built image");
+        var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image [default: {DefaultTag}]");
         var asDockerfileOption = new Option<string>("--as-dockerfile", "Generates a Dockerfile with the specified name");
         var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
 
@@ -21,7 +23,7 @@ class BuildCommand : RootCommand
                         baseOption, tagOption, asDockerfileOption, projectArg);
     }
 
-    public static int Handle(IConsole console, string? baseFlavor, string tag, string? asDockerfile, string project)
+    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project)
     {
         ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
@@ -59,15 +61,6 @@ class BuildCommand : RootCommand
             return 1;
         }
 
-        if (asDockerfile is null)
-        {
-            console.WriteLine($"Building image '{tag}' from project '{projectFile}'.");
-        }
-        else
-        {
-            console.WriteLine($"Creating Dockerfile '{asDockerfile}' for project '{projectFile}'.");
-        }
-
         // Find out .NET version and assembly name.
         ProjectInformation projectInformation = ProjectReader.ReadProjectInfo(projectFile);
         if (projectInformation.DotnetVersion is null || projectInformation.AssemblyName is null)
@@ -82,6 +75,16 @@ class BuildCommand : RootCommand
             }
             return 1;
         }
+
+        tag ??= projectInformation.ImageTag ?? DefaultTag;
+        if (asDockerfile is null)
+        {
+            console.WriteLine($"Building image '{tag}' from project '{projectFile}'.");
+        }
+        else
+        {
+            console.WriteLine($"Creating Dockerfile '{asDockerfile}' for project '{projectFile}'.");
+        }
         string dotnetVersion = projectInformation.DotnetVersion;
         DotnetDockerfileBuilderOptions buildOptions = new()
         {
@@ -90,7 +93,7 @@ class BuildCommand : RootCommand
         };
 
         // Build the image.
-        baseFlavor ??= "";
+        baseFlavor ??= projectInformation.ImageBase ?? "";
         if (baseFlavor.StartsWith("ubi"))
         {
             string versionNoDot = dotnetVersion.Replace(".", "");
