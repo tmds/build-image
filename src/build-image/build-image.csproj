@@ -12,7 +12,7 @@
     <Copyright>Tom Deseyn</Copyright>
     <PackageId>dotnet-build-image</PackageId>
     <Version>0.2.0</Version>
-    <Description>Build a container image from a .NET app.</Description>
+    <Description>Build a container image from a .NET project.</Description>
     <PackageTags>container;image;podman;docker</PackageTags>
   </PropertyGroup>
 

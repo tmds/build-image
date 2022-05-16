@@ -4,6 +4,8 @@ class ProjectInformation
 {
     public string? DotnetVersion { get; set; }
     public string? AssemblyName { get; set; }
+    public string? ImageTag { get; set; }
+    public string? ImageBase { get; set; }
 }
 
 class ProjectReader
@@ -28,7 +30,9 @@ class ProjectReader
         return new ProjectInformation()
         {
             DotnetVersion = dotnetVersion,
-            AssemblyName = assemblyName
+            AssemblyName = assemblyName,
+            ImageTag = GetProperty(project, "ImageTag"),
+            ImageBase = GetProperty(project, "ImageBase"),
         };
 
         static string? GetProperty(Project project, string name)
