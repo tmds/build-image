@@ -24,6 +24,7 @@ $ cd web
 
 Build an image:
 ```
+$ dotnet build-image
 [1/2] STEP 1/5: FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
 [1/2] STEP 2/5: WORKDIR /app
 --> Using cache 19c7be895c6c22f77f807ed3bb15f5f5b914899e9bbc76de8041bf68e391d4db
