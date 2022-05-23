@@ -90,15 +90,11 @@ When set to `ubi`, Red Hat images from `registry.access.redhat.com` are used.
 When set to another value, like `alpine`, the corresponding Microsoft images are used.
 
 The options can also be specified in the .NET project file.
-```
+```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-
-    <!-- properties read by dotnet build-image tool -->
+    ...
     <ImageTag>myapp</ImageTag>
     <ImageBase>ubi</ImageBase>
   </PropertyGroup>
