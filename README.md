@@ -13,7 +13,7 @@ A .NET global tool to create container images from .NET projects, because _life 
 Install the tool:
 
 ```
-$ dotnet tool install -g --add-source https://www.myget.org/F/tmds --version '*-*' dotnet-build-image
+$ dotnet tool install -g dotnet-build-image
 ```
 
 Create an app:
