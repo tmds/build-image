@@ -79,6 +79,14 @@ class BuildCommand : RootCommand
             return 1;
         }
 
+        string projectDirectory = Path.GetDirectoryName(projectFile)!;
+        GlobalJson? globalJson = GlobalJsonReader.ReadGlobalJson(projectDirectory);
+        string? sdkVersion = null;
+        if (globalJson?.SdkVersion != null)
+        {
+            sdkVersion = $"{globalJson.SdkVersion.Major}.{globalJson.SdkVersion.Minor}";
+        }
+
         tag ??= projectInformation.ImageTag ?? DefaultTag;
         if (asDockerfile is null)
         {
@@ -89,6 +97,7 @@ class BuildCommand : RootCommand
             console.WriteLine($"Creating Dockerfile '{asDockerfile}' for project '{projectFile}'.");
         }
         string dotnetVersion = projectInformation.DotnetVersion;
+        sdkVersion ??= dotnetVersion;
         DotnetDockerfileBuilderOptions buildOptions = new()
         {
             ProjectPath = project,
@@ -100,23 +109,25 @@ class BuildCommand : RootCommand
         if (baseFlavor.StartsWith("ubi"))
         {
             string versionNoDot = dotnetVersion.Replace(".", "");
+            string sdkVersionNoDot = sdkVersion.Replace(".", "");
             string baseOs = baseFlavor;
             if (baseOs == "ubi")
             {
                 baseOs = "ubi8"; // TODO: switch based on dotnetVersion
             }
             buildOptions.FromImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}-runtime";
-            buildOptions.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}";
+            buildOptions.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{sdkVersionNoDot}";
         }
         else
         {
             string imageTag = dotnetVersion;
+            string sdkImageTag = sdkVersion;
             if (!string.IsNullOrEmpty(baseFlavor))
             {
                 imageTag += $"-{baseFlavor}";
             }
             buildOptions.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
-            buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{imageTag}";
+            buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{sdkVersion}";
         }
         if (containerEngine is not null)
         {
