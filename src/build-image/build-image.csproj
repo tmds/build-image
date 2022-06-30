@@ -14,6 +14,7 @@
     <Version>0.2.0</Version>
     <Description>Build a container image from a .NET project.</Description>
     <PackageTags>container;image;podman;docker</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
