@@ -15,7 +15,6 @@ class GlobalJsonReader
         do
         {
             string globalJsonFileName = Path.Combine(path, "global.json");
-            System.Console.WriteLine($"Checking {globalJsonFileName}");
             if (File.Exists(globalJsonFileName))
             {
                 var options = new JsonSerializerOptions
