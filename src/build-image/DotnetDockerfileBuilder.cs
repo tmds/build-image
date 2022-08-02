@@ -36,6 +36,7 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"FROM {fromImage}");
         sb.AppendLine($"COPY --from=build-env /out /app");
         sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");
+        sb.AppendLine("WORKDIR /app");
         sb.AppendLine($"CMD [\"dotnet\", \"/app/{assemblyName}\"]");
         return sb.ToString();
     }
