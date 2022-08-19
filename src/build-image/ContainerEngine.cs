@@ -72,17 +72,17 @@ class ContainerEngine
 
     public bool TryBuild(IConsole console, string dockerFileName, string tag, string contextDir)
     {
-        ProcessCommand command = GetBuidCommand(dockerFileName, tag, contextDir);
+        ProcessCommand command = GetBuildCommand(dockerFileName, tag, contextDir);
         int exitCode = command.Run(console);
         return exitCode == 0;
     }
 
     internal string GetBuildCommandLine(string dockerFileName, string tag, string contextDir)
     {
-        return GetBuidCommand(dockerFileName, tag, contextDir).GetCommandLine();
+        return GetBuildCommand(dockerFileName, tag, contextDir).GetCommandLine();
     }
 
-    private ProcessCommand GetBuidCommand(string dockerFileName, string tag, string contextDir)
+    private ProcessCommand GetBuildCommand(string dockerFileName, string tag, string contextDir)
     {
         ProcessCommand command = new()
         {
