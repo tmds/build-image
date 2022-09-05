@@ -2,8 +2,8 @@ using System.Text;
 
 public class DotnetDockerfileBuilderOptions
 {
-    public string? BuildImage { get; set; }
-    public string? FromImage { get; set; }
+    public string? SdkImage { get; set; }
+    public string? RuntimeImage { get; set; }
     public string? ProjectPath { get; set; }
     public string? AssemblyName { get; set; }
     public bool SupportsCacheMount { get; set; }
@@ -14,8 +14,8 @@ class DotnetDockerfileBuilder
 {
     public static string BuildDockerFile(DotnetDockerfileBuilderOptions options)
     {
-        string fromImage = options.FromImage ?? throw new ArgumentNullException(nameof(options.FromImage));
-        string buildImage = options.BuildImage ?? throw new ArgumentNullException(nameof(options.BuildImage));
+        string fromImage = options.RuntimeImage ?? throw new ArgumentNullException(nameof(options.RuntimeImage));
+        string buildImage = options.SdkImage ?? throw new ArgumentNullException(nameof(options.SdkImage));
         string projectPath = options.ProjectPath ?? throw new ArgumentNullException(nameof(options.ProjectPath));
         string assemblyName = options.AssemblyName ?? throw new ArgumentNullException(nameof(options.AssemblyName));
 
@@ -37,7 +37,7 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"COPY --from=build-env /out /app");
         sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");
         sb.AppendLine("WORKDIR /app");
-        sb.AppendLine($"CMD [\"dotnet\", \"/app/{assemblyName}\"]");
+        sb.AppendLine($"ENTRYPOINT [\"dotnet\", \"/app/{assemblyName}\"]");
         return sb.ToString();
     }
 }

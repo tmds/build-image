@@ -1,5 +1,8 @@
 ﻿using System.CommandLine;
+using System.Runtime.CompilerServices;
 using Microsoft.Build.Locator;
+
+[assembly:InternalsVisibleTo("BuildImage.Tests")]
 
 public class Program
 {
