@@ -106,29 +106,10 @@ class BuildCommand : RootCommand
 
         // Build the image.
         baseFlavor ??= projectInformation.ImageBase ?? "";
-        if (baseFlavor.StartsWith("ubi"))
-        {
-            string versionNoDot = dotnetVersion.Replace(".", "");
-            string sdkVersionNoDot = sdkVersion.Replace(".", "");
-            string baseOs = baseFlavor;
-            if (baseOs == "ubi")
-            {
-                baseOs = "ubi8"; // TODO: switch based on dotnetVersion
-            }
-            buildOptions.FromImage = $"registry.access.redhat.com/{baseOs}/dotnet-{versionNoDot}-runtime";
-            buildOptions.BuildImage = $"registry.access.redhat.com/{baseOs}/dotnet-{sdkVersionNoDot}";
-        }
-        else
-        {
-            string imageTag = dotnetVersion;
-            string sdkImageTag = sdkVersion;
-            if (!string.IsNullOrEmpty(baseFlavor))
-            {
-                imageTag += $"-{baseFlavor}";
-            }
-            buildOptions.FromImage = $"mcr.microsoft.com/dotnet/aspnet:{imageTag}"; // TODO: detect is ASP.NET.
-            buildOptions.BuildImage = $"mcr.microsoft.com/dotnet/sdk:{sdkVersion}";
-        }
+        // TODO: detect is ASP.NET.
+        FlavorInfo flavorInfo = ImageFlavorDatabase.GetFlavorInfo(baseFlavor, dotnetVersion, sdkVersion);
+        buildOptions.RuntimeImage = flavorInfo.RuntimeImage;
+        buildOptions.SdkImage = flavorInfo.SdkImage;
         if (containerEngine is not null)
         {
             buildOptions.SupportsCacheMount = containerEngine.SupportsCacheMount;
