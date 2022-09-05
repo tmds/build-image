@@ -27,13 +27,17 @@ class ProjectReader
             assemblyName += ".dll";
         }
 
-        return new ProjectInformation()
+        var info = new ProjectInformation()
         {
             DotnetVersion = dotnetVersion,
             AssemblyName = assemblyName,
             ImageTag = GetProperty(project, "ImageTag"),
             ImageBase = GetProperty(project, "ImageBase"),
         };
+
+        project.ProjectCollection.UnloadProject(project);
+
+        return info;
 
         static string? GetProperty(Project project, string name)
         {

@@ -24,4 +24,11 @@
     <ProjectReference Include="..\..\src\build-image\build-image.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\webprojects\**" 
+          CopyToOutputDirectory="PreserveNewest"
+          LinkBase="webprojects\" />
+  </ItemGroup>
+
+
 </Project>
