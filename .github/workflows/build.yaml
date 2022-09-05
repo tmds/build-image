@@ -21,7 +21,8 @@ jobs:
 
     - name: Build packages
       run: |
-        dotnet pack src/build-image --configuration Release --output src/build-image
+        VERSION_SUFFIX="${{ github.run_number }}-${{ github.sha }}"
+        dotnet pack src/build-image --configuration Release --output src/build-image /p:VersionSuffix="$VERSION_SUFFIX"
 
     - name: Publish packages
       run: |
