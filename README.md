@@ -8,6 +8,7 @@ A .NET global tool to create container images from .NET projects, because _life 
 - The image base OS can be chosen.
 - Both `podman` and `docker` are supported to build the image.
 - Caches NuGet packages across builds.
+- The target architecture can be chosen.
 
 # Usage
 
@@ -66,7 +67,6 @@ $ podman run -p 8080:8080 dotnet-app
 # Options
 
 ```
-$ dotnet build-image --help
 Description:
   Build a container image from a .NET project.
 
@@ -81,6 +81,8 @@ Options:
   -t, --tag <tag>                  Name for the built image [default: dotnet-app]
   --push                           After the build, push the image to the repository
   --as-dockerfile <as-dockerfile>  Generates a Dockerfile with the specified name
+  --arch <arch>                    Target architecture ('x64'/'arm64'/'s390x')
+                                   The base image needs to support the selected architecture
   --version                        Show version information
   -?, -h, --help                   Show help and usage information
 ```

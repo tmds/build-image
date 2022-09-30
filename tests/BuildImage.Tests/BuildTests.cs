@@ -57,6 +57,20 @@ public class BuildTests
         }
     }
 
+    // Red Hat ubi
+    [InlineData("ubi", "s390x", "6.0")]
+    // Microsoft default
+    [InlineData("", "arm64", "6.0")]
+    [Theory]
+    public async Task Architecture(string flavor, string arch, string version)
+    {
+        string imageTag = $"build-test-{flavor}-{arch}-{version}";
+        string projectFolder = $"webprojects/{version}";
+        string[] args = new[] { "-b", flavor, "-t", imageTag, "--arch", arch, projectFolder };
+        int rv = new BuildCommand().Invoke(args);
+        Assert.Equal(0, rv);
+    }
+
     static BuildTests()
     {
         MSBuildLocator.RegisterDefaults();

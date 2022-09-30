@@ -8,6 +8,7 @@ public class DotnetDockerfileBuilderOptions
     public string? AssemblyName { get; set; }
     public bool SupportsCacheMount { get; set; }
     public bool SupportsCacheMountSELinuxRelabling { get; set; }
+    public string? TargetPlatform { get; set; }
 }
 
 class DotnetDockerfileBuilder
@@ -49,7 +50,8 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"");
 
         sb.AppendLine($"# Build application image");
-        sb.AppendLine($"FROM {fromImage}");
+        string platformArch = options.TargetPlatform is null ? "" : $"--platform={options.TargetPlatform} ";
+        sb.AppendLine($"FROM {platformArch}{fromImage}");
         sb.AppendLine($"ARG UID GID");
         sb.AppendLine($"COPY --from=build-env /rootfs /");
         sb.AppendLine($"USER $UID:$GID");

@@ -12,21 +12,23 @@ class BuildCommand : RootCommand
         var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image [default: {DefaultTag}]");
         var asDockerfileOption = new Option<string>("--as-dockerfile", "Generates a Dockerfile with the specified name");
         var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
+        var archOption = new Option<string>(new[] { "--arch" }, $"Target architecture ('x64'/'arm64'/'s390x')\nThe base image needs to support the selected architecture");
 
         Add(baseOption);
         Add(tagOption);
         Add(pushOption);
         Add(asDockerfileOption);
+        Add(archOption);
 
         var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
         Add(projectArg);
 
         this.SetHandler((IConsole console,
-                         string? os, string tag, string? asDockerfile, string project, bool push) => Handle(console, os, tag, asDockerfile, project, push),
-                        baseOption, tagOption, asDockerfileOption, projectArg, pushOption);
+                         string? os, string tag, string? asDockerfile, string project, bool push, string? arch) => Handle(console, os, tag, asDockerfile, project, push, arch),
+                        baseOption, tagOption, asDockerfileOption, projectArg, pushOption, archOption);
     }
 
-    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project, bool push)
+    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project, bool push, string? arch)
     {
         ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
@@ -79,6 +81,13 @@ class BuildCommand : RootCommand
             return 1;
         }
 
+        arch ??= projectInformation.ImageArchitecture;
+        if (!TryGetTargetPlatform(arch, out string? targetPlatform))
+        {
+            console.Error.WriteLine($"Unknown target architecture: {arch}.");
+            return 1;
+        }
+
         string projectDirectory = Path.GetDirectoryName(projectFile)!;
         GlobalJson? globalJson = GlobalJsonReader.ReadGlobalJson(projectDirectory);
         string? sdkVersion = null;
@@ -101,7 +110,8 @@ class BuildCommand : RootCommand
         DotnetDockerfileBuilderOptions buildOptions = new()
         {
             ProjectPath = project,
-            AssemblyName = projectInformation.AssemblyName
+            AssemblyName = projectInformation.AssemblyName,
+            TargetPlatform = targetPlatform
         };
 
         // Build the image.
@@ -149,5 +159,22 @@ class BuildCommand : RootCommand
         }
 
         return 0;
+    }
+
+    private static bool TryGetTargetPlatform(string? arch, out string? platform)
+    {
+        platform = null;
+        if (arch is null)
+        {
+            return true;
+        }
+        platform = arch switch
+        {
+            "x64" => "linux/amd64",
+            "arm64" => "linux/arm64",
+            "s390x" => "linux/s390x",
+            _ => null,
+        };
+        return platform is not null;
     }
 }

@@ -6,6 +6,7 @@ class ProjectInformation
     public string? AssemblyName { get; set; }
     public string? ImageTag { get; set; }
     public string? ImageBase { get; set; }
+    public string? ImageArchitecture { get; set; }
 }
 
 class ProjectReader
@@ -33,6 +34,7 @@ class ProjectReader
             AssemblyName = assemblyName,
             ImageTag = GetProperty(project, "ImageTag"),
             ImageBase = GetProperty(project, "ImageBase"),
+            ImageArchitecture = GetProperty(project, "ImageArchitecture"),
         };
 
         project.ProjectCollection.UnloadProject(project);
