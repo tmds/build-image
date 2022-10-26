@@ -1,6 +1,6 @@
 using System.Text;
 
-public class DotnetDockerfileBuilderOptions
+public class DotnetContainerfileBuilderOptions
 {
     public string? SdkImage { get; set; }
     public string? RuntimeImage { get; set; }
@@ -11,9 +11,9 @@ public class DotnetDockerfileBuilderOptions
     public string? TargetPlatform { get; set; }
 }
 
-class DotnetDockerfileBuilder
+class DotnetContainerfileBuilder
 {
-    public static string BuildDockerFile(DotnetDockerfileBuilderOptions options)
+    public static string BuildFile(DotnetContainerfileBuilderOptions options)
     {
         const int ContainerUid = 1001;
         const int ContainerGid = 0;
@@ -26,11 +26,13 @@ class DotnetDockerfileBuilder
         string assemblyName = options.AssemblyName ?? throw new ArgumentNullException(nameof(options.AssemblyName));
 
         var sb = new StringBuilder();
-        sb.AppendLine($"ARG UID={ContainerUid} GID={ContainerGid}");
+        sb.AppendLine($"ARG UID={ContainerUid}");
+        sb.AppendLine($"ARG GID={ContainerGid}");
         sb.AppendLine($"");
         sb.AppendLine($"# Publish application");
         sb.AppendLine($"FROM {buildImage} AS build-env");
-        sb.AppendLine($"ARG UID GID");
+        sb.AppendLine($"ARG UID");
+        sb.AppendLine($"ARG GID");
         sb.AppendLine("USER 0");
         // Ensure uid and gid are known by the target image.
         sb.AppendLine($"COPY --from={fromImage} /etc/passwd /etc/group /scratch/etc");
@@ -52,7 +54,8 @@ class DotnetDockerfileBuilder
         sb.AppendLine($"# Build application image");
         string platformArch = options.TargetPlatform is null ? "" : $"--platform={options.TargetPlatform} ";
         sb.AppendLine($"FROM {platformArch}{fromImage}");
-        sb.AppendLine($"ARG UID GID");
+        sb.AppendLine($"ARG UID");
+        sb.AppendLine($"ARG GID");
         sb.AppendLine($"COPY --from=build-env /rootfs /");
         sb.AppendLine($"USER $UID:$GID");
         sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");

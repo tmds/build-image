@@ -77,16 +77,16 @@ Arguments:
   <PROJECT>  .NET project to build [default: .]
 
 Options:
-  -b, --base <base>                Flavor of the base image
-  -t, --tag <tag>                  Name for the built image [default: dotnet-app]
-  --push                           After the build, push the image to the repository
-  --as-dockerfile <as-dockerfile>  Generates a Containerfile with the specified name
-  --print                          Print the dockerfile.
-  --arch <arch>                    Target architecture ('x64'/'arm64'/'s390x')
-                                   The base image needs to support the selected architecture
-  --context <context>              Context directory for the build [default: .]
-  --version                        Show version information
-  -?, -h, --help                   Show help and usage information
+  -b, --base <base>    Flavor of the base image
+  -t, --tag <tag>      Name for the built image [default: dotnet-app]
+  --push               After the build, push the image to the repository
+  --as-file <as-file>  Generates a Containerfile with the specified name
+  --print              Print the Containerfile
+  --arch <arch>        Target architecture ('x64'/'arm64'/'s390x')
+                       The base image needs to support the selected architecture
+  --context <context>  Context directory for the build [default: .]
+  --version            Show version information
+  -?, -h, --help       Show help and usage information
 ```
 
 The `--base` option can be used to select the .NET base image.
