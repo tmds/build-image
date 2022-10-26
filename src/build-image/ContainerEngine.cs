@@ -87,7 +87,7 @@ class ContainerEngine
         ProcessCommand command = new()
         {
             FileName = Command,
-            Arguments = { "build", "-f", dockerFileName, "-t", tag, "." }
+            Arguments = { "build", "-f", dockerFileName, "-t", tag, contextDir }
         };
 
         if (Command == Docker)

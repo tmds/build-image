@@ -10,25 +10,29 @@ class BuildCommand : RootCommand
     {
         var baseOption = new Option<string>(new[] { "--base", "-b" }, "Flavor of the base image");
         var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image [default: {DefaultTag}]");
-        var asDockerfileOption = new Option<string>("--as-dockerfile", "Generates a Dockerfile with the specified name");
+        var asDockerfileOption = new Option<string>( "--as-dockerfile", "Generates a Containerfile with the specified name");
+        var printOption = new Option<bool>("--print", "Print the dockerfile.") { Arity = ArgumentArity.Zero };
         var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
         var archOption = new Option<string>(new[] { "--arch" }, $"Target architecture ('x64'/'arm64'/'s390x')\nThe base image needs to support the selected architecture");
+        var contextOption = new Option<string>(new[] { "--context" }, getDefaultValue: () => ".", "Context directory for the build");
 
         Add(baseOption);
         Add(tagOption);
         Add(pushOption);
         Add(asDockerfileOption);
+        Add(printOption);
         Add(archOption);
+        Add(contextOption);
 
         var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
         Add(projectArg);
 
         this.SetHandler((IConsole console,
-                         string? os, string tag, string? asDockerfile, string project, bool push, string? arch) => Handle(console, os, tag, asDockerfile, project, push, arch),
-                        baseOption, tagOption, asDockerfileOption, projectArg, pushOption, archOption);
+                         string? os, string tag, string? asDockerfile, string project, bool push, bool print, string? arch, string? context) => Handle(console, os, tag, asDockerfile, project, push, print, arch, context),
+                        baseOption, tagOption, asDockerfileOption, projectArg, pushOption, printOption, archOption, contextOption);
     }
 
-    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project, bool push, string? arch)
+    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asDockerfile, string project, bool push, bool print, string? arch, string? contextDir)
     {
         ContainerEngine? containerEngine = ContainerEngine.TryCreate();
         if (containerEngine is null && asDockerfile is null)
@@ -37,12 +41,20 @@ class BuildCommand : RootCommand
             return 1;
         }
 
+        contextDir ??= Directory.GetCurrentDirectory();
+
+        if (!Directory.Exists(contextDir))
+        {
+            console.Error.WriteLine($"The build context directory does not exist.");
+            return 1;
+        }
+
         // The working directory will be used as the image build context,
         // verify the project we're build is under it.
-        string projectFullPath = Path.GetFullPath(project);
-        if (!projectFullPath.StartsWith(Directory.GetCurrentDirectory()))
+        string projectFullPath = Path.Combine(contextDir, project);
+        if (!projectFullPath.StartsWith(contextDir))
         {
-            console.Error.WriteLine($"Project must be a subdirectory of the current working directory.");
+            console.Error.WriteLine($"Project must be a subdirectory of the context directory.");
             return 1;
         }
 
@@ -57,7 +69,7 @@ class BuildCommand : RootCommand
             var projFiles = Directory.GetFiles(projectFullPath, "*.??proj");
             if (projFiles.Length > 0)
             {
-                projectFile = projFiles[0];
+                projectFile = Path.GetFullPath(projFiles[0]);
             }
         }
         if (projectFile is null)
@@ -103,7 +115,7 @@ class BuildCommand : RootCommand
         }
         else
         {
-            console.WriteLine($"Creating Dockerfile '{asDockerfile}' for project '{projectFile}'.");
+            console.WriteLine($"Creating Containerfile '{asDockerfile}' for project '{projectFile}'.");
         }
         string dotnetVersion = projectInformation.DotnetVersion;
         sdkVersion ??= dotnetVersion;
@@ -126,7 +138,14 @@ class BuildCommand : RootCommand
             buildOptions.SupportsCacheMountSELinuxRelabling = containerEngine.SupportsCacheMountSELinuxRelabling;
         }
         var dockerfileContent = DotnetDockerfileBuilder.BuildDockerFile(buildOptions);
-        string dockerFileName = asDockerfile ?? "Dockerfile." + Path.GetRandomFileName();
+        if (print)
+        {
+            Console.WriteLine("--");
+            Console.WriteLine(dockerfileContent);
+            Console.WriteLine("--");
+        }
+
+        string dockerFileName = asDockerfile ?? "Containerfile." + Path.GetRandomFileName();
         File.WriteAllText(dockerFileName, dockerfileContent);
 
         if (asDockerfile is not null)
@@ -134,12 +153,12 @@ class BuildCommand : RootCommand
             if (containerEngine is not null)
             {
                 console.WriteLine("To build the image, run:");
-                console.WriteLine(containerEngine.GetBuildCommandLine(dockerFileName, tag, contextDir: "."));
+                console.WriteLine(containerEngine.GetBuildCommandLine(dockerFileName, tag, contextDir));
             }
             return 0;
         }
 
-        bool buildSuccessful = containerEngine!.TryBuild(console, dockerFileName, tag, contextDir: ".");
+        bool buildSuccessful = containerEngine!.TryBuild(console, dockerFileName, tag, contextDir);
         File.Delete(dockerFileName);
         if (!buildSuccessful)
         {
