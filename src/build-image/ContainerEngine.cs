@@ -3,6 +3,14 @@ using System.CommandLine.IO;
 using System.Diagnostics;
 using System.Text;
 
+[Flags]
+enum ContainerEngineFeature
+{
+    None = 0,
+    CacheMounts,
+    All = CacheMounts
+}
+
 class ContainerEngine
 {
     public const string Docker = "docker";
@@ -10,11 +18,18 @@ class ContainerEngine
 
     public string Command { get; }
     public Version Version { get; }
+    private ContainerEngineFeature _disabledFeatures;
+
+    private bool IsDisabled(ContainerEngineFeature feature) => (_disabledFeatures & ContainerEngineFeature.CacheMounts) != 0;
 
     public bool SupportsCacheMount
     {
         get
         {
+            if (IsDisabled(ContainerEngineFeature.CacheMounts))
+            {
+                return false;
+            }
             if (Command == Podman)
             {
                 return Version.Major >= 4;
@@ -31,13 +46,14 @@ class ContainerEngine
         }
     }
 
-    private ContainerEngine(string command, Version version)
+    private ContainerEngine(string command, Version version, ContainerEngineFeature disabledFeatures)
     {
         Command = command;
         Version = version;
+        _disabledFeatures = disabledFeatures;
     }
 
-    public static ContainerEngine? TryCreate()
+    public static ContainerEngine? TryCreate(ContainerEngineFeature disableFeatures = ContainerEngineFeature.None)
     {
         string? command = null;
         Version? version = null;
@@ -67,7 +83,7 @@ class ContainerEngine
             return null;
         }
 
-        return new ContainerEngine(command, version ?? new Version());
+        return new ContainerEngine(command, version ?? new Version(), disableFeatures);
     }
 
     public bool TryBuild(IConsole console, string dockerFileName, string tag, string contextDir)
@@ -90,9 +106,9 @@ class ContainerEngine
             Arguments = { "build", "-f", dockerFileName, "-t", tag, contextDir }
         };
 
-        if (Command == Docker)
+        if (Command == Docker && !IsDisabled(ContainerEngineFeature.CacheMounts))
         {
-            // Support cache mounts.
+            // Enable cache mount support.
             command.EnvironmentVariables.Add(("DOCKER_BUILDKIT", "1"));
         }
 
