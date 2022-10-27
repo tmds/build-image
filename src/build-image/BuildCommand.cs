@@ -13,28 +13,40 @@ class BuildCommand : RootCommand
         var asfileOption = new Option<string>( "--as-file", "Generates a Containerfile with the specified name");
         var printOption = new Option<bool>("--print", "Print the Containerfile") { Arity = ArgumentArity.Zero };
         var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
-        var archOption = new Option<string>(new[] { "--arch" }, $"Target architecture ('x64'/'arm64'/'s390x')\nThe base image needs to support the selected architecture");
+        var archOption = new Option<string>(new[] { "--arch", "-a" }, $"Target architecture ('x64'/'arm64'/'s390x')\nThe base image needs to support the selected architecture");
         var contextOption = new Option<string>(new[] { "--context" }, getDefaultValue: () => ".", "Context directory for the build");
-
-        Add(baseOption);
-        Add(tagOption);
-        Add(pushOption);
-        Add(asfileOption);
-        Add(printOption);
-        Add(archOption);
-        Add(contextOption);
+        var portableOption = new Option<bool>("--portable", "Avoid using features that make the Containerfile not portable") { Arity = ArgumentArity.Zero };
 
         var projectArg = new Argument<string>("PROJECT", getDefaultValue: () => ".", ".NET project to build");
         Add(projectArg);
 
+        // note: order determines the help order
+        Add(baseOption);
+        Add(tagOption);
+        Add(archOption);
+
+        Add(pushOption);
+
+        Add(portableOption);
+        Add(contextOption);
+
+        Add(asfileOption);
+        Add(printOption);
+
         this.SetHandler((IConsole console,
-                         string? os, string tag, string? asfile, string project, bool push, bool print, string? arch, string? context) => Handle(console, os, tag, asfile, project, push, print, arch, context),
-                        baseOption, tagOption, asfileOption, projectArg, pushOption, printOption, archOption, contextOption);
+                         string? os, string tag, string? asfile, string project, bool push, bool print, string? arch, string? context, bool portable) => Handle(console, os, tag, asfile, project, push, print, arch, context, portable),
+                        baseOption, tagOption, asfileOption, projectArg, pushOption, printOption, archOption, contextOption, portableOption);
     }
 
-    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asfile, string project, bool push, bool print, string? arch, string? contextDir)
+    public static int Handle(IConsole console, string? baseFlavor, string? tag, string? asfile, string project, bool push, bool print, string? arch, string? contextDir, bool portable)
     {
-        ContainerEngine? containerEngine = ContainerEngine.TryCreate();
+        ContainerEngineFeature disabledFeatures = ContainerEngineFeature.None;
+        if (portable)
+        {
+            disabledFeatures = ContainerEngineFeature.All;
+        }
+
+        ContainerEngine? containerEngine = ContainerEngine.TryCreate(disabledFeatures);
         if (containerEngine is null && asfile is null)
         {
             console.Error.WriteLine("Install podman or docker to build images.");
