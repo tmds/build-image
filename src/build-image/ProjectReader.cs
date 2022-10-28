@@ -4,9 +4,21 @@ class ProjectInformation
 {
     public string? DotnetVersion { get; set; }
     public string? AssemblyName { get; set; }
-    public string? ImageTag { get; set; }
-    public string? ImageBase { get; set; }
-    public string? ImageArchitecture { get; set; }
+
+    public string? Version { get; set; }
+
+    // Match properties of built-in sdk support
+    // See https://github.com/dotnet/sdk-container-builds/blob/main/docs/ContainerCustomization.md.
+    public string? ContainerImageTag { get; set; }
+    public string? ContainerImageName { get; set; }
+    public string? ContainerRegistry { get; set; }
+    public string? ContainerBaseImage { get; set; }
+    public string? ContainerWorkingDirectory { get; set; }
+    public string? ContainerImageTags { get; set; }
+
+    // Additional properties
+    public string? ContainerImageArchitecture { get; set; }
+    public string? ContainerSdkImage { get; set; }
 }
 
 class ProjectReader
@@ -32,9 +44,16 @@ class ProjectReader
         {
             DotnetVersion = dotnetVersion,
             AssemblyName = assemblyName,
-            ImageTag = GetProperty(project, "ImageTag"),
-            ImageBase = GetProperty(project, "ImageBase"),
-            ImageArchitecture = GetProperty(project, "ImageArchitecture"),
+            ContainerImageTag = GetProperty(project, "ContainerImageTag"),
+            ContainerImageTags = GetProperty(project, "ContainerImageTags"),
+            ContainerImageName = GetProperty(project, "ContainerImageName"),
+            ContainerRegistry = GetProperty(project, "ContainerRegistry"),
+            ContainerBaseImage = GetProperty(project, "ContainerBaseImage"),
+            ContainerWorkingDirectory = GetProperty(project, "ContainerWorkingDirectory"),
+            Version = GetProperty(project, "Version"),
+
+            ContainerImageArchitecture = GetProperty(project, "ContainerImageArchitecture"),
+            ContainerSdkImage = GetProperty(project, "ContainerSdkImage"),
         };
 
         project.ProjectCollection.UnloadProject(project);

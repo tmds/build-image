@@ -94,6 +94,7 @@ The `--base` option can be used to select the .NET base image.
 When not specified, Microsoft images from `mcr.microsoft.com` are used.
 When set to `ubi`, Red Hat images from `registry.access.redhat.com` are used.
 When set to another value, like `alpine`, the corresponding Microsoft images are used.
+You can also use the full image repository names, like `mcr.microsoft.com/dotnet/runtime:6.0-alpine`.
 
 The options can also be specified in the .NET project file.
 ```xml
@@ -101,9 +102,12 @@ The options can also be specified in the .NET project file.
 
   <PropertyGroup>
     ...
-    <ImageTag>myapp</ImageTag>
-    <ImageBase>ubi</ImageBase>
+    <ContainerImageName>myapp</ContainerImageName>
+    <ContainerImageTag>latest</ContainerImageTag>
+    <ContainerBaseImage>ubi</ContainerBaseImage>
   </PropertyGroup>
 
 </Project>
 ```
+
+The following properties are supported: `ContainerImageTag`, `ContainerImageTags`, `ContainerImageName`, `ContainerRegistry`, `ContainerBaseImage`, `ContainerWorkingDirectory`, `ContainerImageArchitecture`, `ContainerSdkImage`.
