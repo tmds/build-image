@@ -9,6 +9,7 @@ public class DotnetContainerfileBuilderOptions
     public bool SupportsCacheMount { get; set; }
     public bool SupportsCacheMountSELinuxRelabling { get; set; }
     public string? TargetPlatform { get; set; }
+    public string? WorkingDirectory { get; set; }
 }
 
 class DotnetContainerfileBuilder
@@ -19,13 +20,14 @@ class DotnetContainerfileBuilder
         const int ContainerGid = 0;
         const string BuildHomeDir = "/home/build";
         const string HomeDir = "/home/app";
-        const string AppDir = "/app";
         const string TargetRoot = "/rootfs";
 
         string fromImage = options.RuntimeImage ?? throw new ArgumentNullException(nameof(options.RuntimeImage));
         string buildImage = options.SdkImage ?? throw new ArgumentNullException(nameof(options.SdkImage));
         string projectPath = options.ProjectPath ?? throw new ArgumentNullException(nameof(options.ProjectPath));
         string assemblyName = options.AssemblyName ?? throw new ArgumentNullException(nameof(options.AssemblyName));
+        string workingDirectory = options.WorkingDirectory ?? "/app";
+        string appDir = workingDirectory;
 
         var sb = new StringBuilder();
         sb.AppendLine($"ARG UID={ContainerUid}");
@@ -52,10 +54,10 @@ class DotnetContainerfileBuilder
         string relabel = options.SupportsCacheMountSELinuxRelabling ? ",Z" : "";
         string cacheMount = options.SupportsCacheMount ? $"--mount=type=cache,id=nuget,target={BuildHomeDir}/.nuget/packages{relabel} " : "";
         sb.AppendLine($"RUN {cacheMount}dotnet restore {projectPath}");
-        sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {TargetRoot}{AppDir} {projectPath}");
+        sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {TargetRoot}{appDir} {projectPath}");
  
         // Ensure the application and home directory are owned by uid:gid.
-        sb.AppendLine($"RUN chgrp -R $GID {TargetRoot}{AppDir} {TargetRoot}{HomeDir} && chmod -R g=u {TargetRoot}{AppDir} {TargetRoot}{HomeDir} && chown -R $UID:$GID {TargetRoot}{AppDir} {TargetRoot}{HomeDir}");
+        sb.AppendLine($"RUN chgrp -R $GID {TargetRoot}{appDir} {TargetRoot}{HomeDir} && chmod -R g=u {TargetRoot}{appDir} {TargetRoot}{HomeDir} && chown -R $UID:$GID {TargetRoot}{appDir} {TargetRoot}{HomeDir}");
         sb.AppendLine($"");
 
         sb.AppendLine($"# Build application image");
@@ -67,8 +69,8 @@ class DotnetContainerfileBuilder
         sb.AppendLine($"USER $UID:$GID");
         sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");
         sb.AppendLine($"ENV HOME={HomeDir}");
-        sb.AppendLine($"WORKDIR {AppDir}");
-        sb.AppendLine($"ENTRYPOINT [\"dotnet\", \"{AppDir}/{assemblyName}\"]");
+        sb.AppendLine($"WORKDIR {workingDirectory}");
+        sb.AppendLine($"ENTRYPOINT [\"dotnet\", \"{appDir}/{assemblyName}\"]");
         return sb.ToString();
     }
 }

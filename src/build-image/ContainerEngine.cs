@@ -126,6 +126,17 @@ class ContainerEngine
         return command.Run(console) == 0;
     }
 
+    public bool TryTag(IConsole console, string src, string target)
+    {
+        ProcessCommand command = new()
+        {
+            FileName = Command,
+            Arguments = { "tag", src, target }
+        };
+
+        return command.Run(console) == 0;
+    }
+
     class ProcessCommand
     {
         public string FileName { get; set; } = null!;

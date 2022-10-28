@@ -18,11 +18,13 @@ public class ImageFlavors
     [InlineData("alpine", "6.0", "mcr.microsoft.com/dotnet/aspnet:6.0-alpine", "6.0", "mcr.microsoft.com/dotnet/sdk:6.0-alpine")]
     // Microsoft jammy-chiseled
     [InlineData("jammy-chiseled", "6.0", "mcr.microsoft.com/dotnet/nightly/aspnet:6.0-jammy-chiseled", "6.0", "mcr.microsoft.com/dotnet/sdk:6.0-jammy")]
+    // Name with repository
+    [InlineData("some.repository.com/repo/runtime:1.0-alpine", "6.0", "some.repository.com/repo/runtime:6.0-alpine", "6.0", "mcr.microsoft.com/dotnet/sdk:6.0-alpine")]
     [Theory]
     public void Flavors(string flavor, string runtimeVersion, string runtimeImage, string sdkVersion, string sdkImage)
     {
-        var flavorInfo = ImageFlavorDatabase.GetFlavorInfo(flavor, runtimeVersion, sdkVersion);
-        Assert.Equal(flavorInfo.RuntimeImage, runtimeImage);
-        Assert.Equal(flavorInfo.SdkImage, sdkImage);
+        var flavorInfo = ImageFlavorDatabase.GetFlavorInfo(flavor, null, runtimeVersion, sdkVersion);
+        Assert.Equal(runtimeImage, flavorInfo.BaseImage);
+        Assert.Equal(sdkImage, flavorInfo.SdkImage);
     }
 }

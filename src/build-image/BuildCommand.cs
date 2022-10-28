@@ -3,13 +3,11 @@ using System.CommandLine.IO;
 
 class BuildCommand : RootCommand
 {
-    private const string DefaultTag = "dotnet-app";
-
     public BuildCommand() :
         base("Build a container image from a .NET project.")
     {
         var baseOption = new Option<string>(new[] { "--base", "-b" }, "Flavor of the base image");
-        var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image [default: {DefaultTag}]");
+        var tagOption = new Option<string>(new[] { "--tag", "-t" }, $"Name for the built image");
         var asfileOption = new Option<string>( "--as-file", "Generates a Containerfile with the specified name");
         var printOption = new Option<bool>("--print", "Print the Containerfile") { Arity = ArgumentArity.Zero };
         var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
@@ -105,7 +103,7 @@ class BuildCommand : RootCommand
             return 1;
         }
 
-        arch ??= projectInformation.ImageArchitecture;
+        arch ??= projectInformation.ContainerImageArchitecture;
         if (!TryGetTargetPlatform(arch, out string? targetPlatform))
         {
             console.Error.WriteLine($"Unknown target architecture: {arch}.");
@@ -120,10 +118,50 @@ class BuildCommand : RootCommand
             sdkVersion = $"{globalJson.SdkVersion.Major}.{globalJson.SdkVersion.Minor}";
         }
 
-        tag ??= projectInformation.ImageTag ?? DefaultTag;
+        List<string> tags = new();
+        if (tag is not null)
+        {
+            tags.Add(tag);
+        }
+        else
+        {
+            string? name = projectInformation.ContainerImageName;
+            if (name is null)
+            {
+                name = projectInformation.AssemblyName;
+                if (name.EndsWith(".dll"))
+                {
+                    name = name.Substring(0, name.Length - 4);
+                }
+            }
+
+            if (projectInformation.ContainerRegistry is not null)
+            {
+                name = $"{projectInformation.ContainerRegistry}/{name}";
+            }
+
+            if (projectInformation.ContainerImageTag is not null && projectInformation.ContainerImageTags is not null)
+            {
+                console.Error.WriteLine($"Both ContainerImageTag and ContainerImageTags are specified.");
+                return 1;
+            }
+            if (projectInformation.ContainerImageTags is not null)
+            {
+                foreach (var t in projectInformation.ContainerImageTags.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    tags.Add($"{name}:{t}");
+                }
+            }
+            else
+            {
+                string t = projectInformation.ContainerImageTag ?? projectInformation.Version ?? "latest";
+                tags.Add($"{name}:{t}");
+            }
+        }
+
         if (asfile is null)
         {
-            console.WriteLine($"Building image '{tag}' from project '{projectFile}'.");
+            console.WriteLine($"Building image {string.Join(", ", tags.Select(t => $"'{t}'"))} from project '{projectFile}'.");
         }
         else
         {
@@ -135,14 +173,15 @@ class BuildCommand : RootCommand
         {
             ProjectPath = project,
             AssemblyName = projectInformation.AssemblyName,
-            TargetPlatform = targetPlatform
+            TargetPlatform = targetPlatform,
+            WorkingDirectory = projectInformation.ContainerWorkingDirectory
         };
 
         // Build the image.
-        baseFlavor ??= projectInformation.ImageBase ?? "";
+        baseFlavor ??= projectInformation.ContainerBaseImage ?? "";
         // TODO: detect is ASP.NET.
-        FlavorInfo flavorInfo = ImageFlavorDatabase.GetFlavorInfo(baseFlavor, dotnetVersion, sdkVersion);
-        buildOptions.RuntimeImage = flavorInfo.RuntimeImage;
+        FlavorInfo flavorInfo = ImageFlavorDatabase.GetFlavorInfo(baseFlavor, projectInformation.ContainerSdkImage, dotnetVersion, sdkVersion);
+        buildOptions.RuntimeImage = flavorInfo.BaseImage;
         buildOptions.SdkImage = flavorInfo.SdkImage;
         if (containerEngine is not null)
         {
@@ -160,17 +199,18 @@ class BuildCommand : RootCommand
         string containerfileName = asfile ?? "Containerfile." + Path.GetRandomFileName();
         File.WriteAllText(containerfileName, containerfileContent);
 
+        string firstTag = tags.First();
         if (asfile is not null)
         {
             if (containerEngine is not null)
             {
                 console.WriteLine("To build the image, run:");
-                console.WriteLine(containerEngine.GetBuildCommandLine(containerfileName, tag, contextDir));
+                console.WriteLine(containerEngine.GetBuildCommandLine(containerfileName, firstTag, contextDir));
             }
             return 0;
         }
 
-        bool buildSuccessful = containerEngine!.TryBuild(console, containerfileName, tag, contextDir);
+        bool buildSuccessful = containerEngine!.TryBuild(console, containerfileName, firstTag, contextDir);
         File.Delete(containerfileName);
         if (!buildSuccessful)
         {
@@ -178,14 +218,28 @@ class BuildCommand : RootCommand
             return 1;
         }
 
+        for (int i = 1; i < tags.Count; i++)
+        {
+            string t = tags[i];
+            bool tagSuccesful = containerEngine!.TryTag(console, firstTag, t);
+            if (!tagSuccesful)
+            {
+                console.Error.WriteLine($"Failed to tag image.");
+                return 1;
+            }
+        }
+
         if (push)
         {
-            console.WriteLine($"Pushing image '{tag}' to repository.");
-            bool pushSuccesful = containerEngine!.TryPush(console, tag);
-            if (!pushSuccesful)
+            foreach (var t in tags)
             {
-                console.Error.WriteLine($"Failed to push image.");
-                return 1;
+                console.WriteLine($"Pushing image '{t}' to repository.");
+                bool pushSuccesful = containerEngine!.TryPush(console, t);
+                if (!pushSuccesful)
+                {
+                    console.Error.WriteLine($"Failed to push image.");
+                    return 1;
+                }
             }
         }
 
