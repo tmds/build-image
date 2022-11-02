@@ -16,6 +16,10 @@ class ProjectInformation
     public string? ContainerWorkingDirectory { get; set; }
     public string? ContainerImageTags { get; set; }
 
+    public (string name, string value)[] ContainerEnvironmentVariables { get; set; } = null!;
+    public (string name, string value)[] ContainerLabels { get; set; } = null!;
+    public (string number, string type)[] ContainerPorts { get; set; } = null!;
+
     // Additional properties
     public string? ContainerImageArchitecture { get; set; }
     public string? ContainerSdkImage { get; set; }
@@ -54,6 +58,10 @@ class ProjectReader
 
             ContainerImageArchitecture = GetProperty(project, "ContainerImageArchitecture"),
             ContainerSdkImage = GetProperty(project, "ContainerSdkImage"),
+
+            ContainerEnvironmentVariables = GetItemsWithValue(GetItems(project, "ContainerEnvironmentVariable")),
+            ContainerLabels = GetItemsWithValue(GetItems(project, "ContainerLabel")),
+            ContainerPorts = GetPorts(GetItems(project, "ContainerPort"))
         };
 
         project.ProjectCollection.UnloadProject(project);
@@ -63,6 +71,26 @@ class ProjectReader
         static string? GetProperty(Project project, string name)
         {
             return project.AllEvaluatedProperties.FirstOrDefault(prop => prop.Name == name)?.EvaluatedValue;
+        }
+
+        static ProjectItem[] GetItems(Project project, string name)
+        {
+            return project.AllEvaluatedItems.Where(item => item.ItemType == name).ToArray();
+        }
+
+        static (string, string)[] GetItemsWithValue(ProjectItem[] items)
+        {
+            return items.Select(item => (item.EvaluatedInclude, GetMetadata(item, "Value") ?? "")).ToArray();
+        }
+
+        static (string, string)[] GetPorts(ProjectItem[] items)
+        {
+            return items.Select(item => (item.EvaluatedInclude, GetMetadata(item, "Type") ?? "tcp")).ToArray();
+        }
+
+        static string? GetMetadata(ProjectItem item, string name)
+        {
+            return item.DirectMetadata.FirstOrDefault(m => m.Name == name)?.EvaluatedValue;
         }
     }
 }

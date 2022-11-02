@@ -10,6 +10,9 @@ public class DotnetContainerfileBuilderOptions
     public bool SupportsCacheMountSELinuxRelabling { get; set; }
     public string? TargetPlatform { get; set; }
     public string? WorkingDirectory { get; set; }
+    public (string name, string value)[] EnvironmentVariables { get; set; } = null!;
+    public (string name, string value)[] Labels { get; set; } = null!;
+    public (string number, string type)[] Ports { get; set; } = null!;
 }
 
 class DotnetContainerfileBuilder
@@ -55,7 +58,7 @@ class DotnetContainerfileBuilder
         string cacheMount = options.SupportsCacheMount ? $"--mount=type=cache,id=nuget,target={BuildHomeDir}/.nuget/packages{relabel} " : "";
         sb.AppendLine($"RUN {cacheMount}dotnet restore {projectPath}");
         sb.AppendLine($"RUN {cacheMount}dotnet publish --no-restore -c Release -o {TargetRoot}{appDir} {projectPath}");
- 
+
         // Ensure the application and home directory are owned by uid:gid.
         sb.AppendLine($"RUN chgrp -R $GID {TargetRoot}{appDir} {TargetRoot}{HomeDir} && chmod -R g=u {TargetRoot}{appDir} {TargetRoot}{HomeDir} && chown -R $UID:$GID {TargetRoot}{appDir} {TargetRoot}{HomeDir}");
         sb.AppendLine($"");
@@ -67,10 +70,54 @@ class DotnetContainerfileBuilder
         sb.AppendLine($"ARG GID");
         sb.AppendLine($"COPY --from=build-env {TargetRoot} /");
         sb.AppendLine($"USER $UID:$GID");
-        sb.AppendLine("ENV ASPNETCORE_URLS=http://*:8080");
-        sb.AppendLine($"ENV HOME={HomeDir}");
+        (string name, string value)[] envvars = options.EnvironmentVariables;
+        envvars = AppendHome(envvars, HomeDir);
+        AddEnvironmentVariables(sb, envvars);
+        AddPorts(sb, options.Ports);
+        AddLabels(sb, options.Labels);
         sb.AppendLine($"WORKDIR {workingDirectory}");
         sb.AppendLine($"ENTRYPOINT [\"dotnet\", \"{appDir}/{assemblyName}\"]");
         return sb.ToString();
+    }
+
+    private static void AddPorts(StringBuilder sb, (string number, string type)[] ports)
+    {
+        foreach (var port in ports)
+        {
+            sb.AppendLine($"EXPOSE {port.number}/{port.type}");
+        }
+    }
+
+    private static void AddEnvironmentVariables(StringBuilder sb, (string name, string value)[] envvars)
+    {
+        bool firstEnvvar = true;
+        for (int i = 0; i < envvars.Length; i++)
+        {
+            sb.Append(firstEnvvar ? "ENV " : "    ");
+            firstEnvvar = false;
+            sb.Append($"{envvars[i].name}={envvars[i].value}");
+            bool lastEnvvar = i == envvars.Length - 1;
+            sb.AppendLine(lastEnvvar ? "" : @" \");
+        }
+    }
+
+    private static (string name, string value)[] AppendHome((string name, string value)[] envvars, string homeValue)
+    {
+        List<(string, string)> list = new(envvars);
+        list.Add(("HOME", homeValue));
+        return list.ToArray();
+    }
+
+    private static void AddLabels(StringBuilder sb, (string name, string value)[] labels)
+    {
+        bool firstEnvvar = true;
+        for (int i = 0; i < labels.Length; i++)
+        {
+            sb.Append(firstEnvvar ? "LABEL " : "      ");
+            firstEnvvar = false;
+            sb.Append($"{labels[i].name}={labels[i].value}");
+            bool lastEnvvar = i == labels.Length - 1;
+            sb.AppendLine(lastEnvvar ? "" : @" \");
+        }
     }
 }
