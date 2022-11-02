@@ -128,7 +128,7 @@ class BuildCommand : RootCommand
             string? name = projectInformation.ContainerImageName;
             if (name is null)
             {
-                name = projectInformation.AssemblyName;
+                name = projectInformation.AssemblyName.ToLowerInvariant();
                 if (name.EndsWith(".dll"))
                 {
                     name = name.Substring(0, name.Length - 4);
@@ -169,12 +169,17 @@ class BuildCommand : RootCommand
         }
         string dotnetVersion = projectInformation.DotnetVersion;
         sdkVersion ??= dotnetVersion;
+        (string name, string value)[] envvars = projectInformation.ContainerEnvironmentVariables;
+        envvars = EnsureAspNetUrls(envvars);
         DotnetContainerfileBuilderOptions buildOptions = new()
         {
             ProjectPath = project,
             AssemblyName = projectInformation.AssemblyName,
             TargetPlatform = targetPlatform,
-            WorkingDirectory = projectInformation.ContainerWorkingDirectory
+            WorkingDirectory = projectInformation.ContainerWorkingDirectory,
+            EnvironmentVariables = envvars,
+            Ports = projectInformation.ContainerPorts,
+            Labels = projectInformation.ContainerLabels
         };
 
         // Build the image.
@@ -245,6 +250,17 @@ class BuildCommand : RootCommand
         }
 
         return 0;
+    }
+
+    private static (string name, string value)[] EnsureAspNetUrls((string name, string value)[] envvars)
+    {
+        if (envvars.Any(e => e.name == "ASPNETCORE_URLS"))
+        {
+            return envvars;
+        }
+        List<(string, string)> list = new(envvars);
+        list.Add(("ASPNETCORE_URLS", "http://*:8080"));
+        return list.ToArray();
     }
 
     private static bool TryGetTargetPlatform(string? arch, out string? platform)
