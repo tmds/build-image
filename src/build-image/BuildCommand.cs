@@ -180,9 +180,10 @@ class BuildCommand : RootCommand
         // Build the image.
         baseFlavor ??= projectInformation.ContainerBaseImage ?? "";
         // TODO: detect is ASP.NET.
-        FlavorInfo flavorInfo = ImageFlavorDatabase.GetFlavorInfo(baseFlavor, projectInformation.ContainerSdkImage, dotnetVersion, sdkVersion);
-        buildOptions.RuntimeImage = flavorInfo.BaseImage;
-        buildOptions.SdkImage = flavorInfo.SdkImage;
+        Flavor? sdkFlavor = projectInformation.ContainerSdkImage is null ? null : new Flavor(projectInformation.ContainerSdkImage);
+        ResolvedImages resolvedImages = ImageDatabase.Resolve(new Flavor(baseFlavor), sdkFlavor, dotnetVersion, sdkVersion);
+        buildOptions.RuntimeImage = resolvedImages.BaseImage;
+        buildOptions.SdkImage = resolvedImages.SdkImage;
         if (containerEngine is not null)
         {
             buildOptions.SupportsCacheMount = containerEngine.SupportsCacheMount;
