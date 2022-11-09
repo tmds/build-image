@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
@@ -11,7 +11,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
     <PackageId>dotnet-build-image</PackageId>
-    <VersionPrefix>0.4.1</VersionPrefix>
+    <VersionPrefix>0.5.0</VersionPrefix>
     <Description>Build a container image from a .NET project.</Description>
     <PackageTags>container;image;podman;docker</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
