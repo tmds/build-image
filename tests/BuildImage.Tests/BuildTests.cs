@@ -12,13 +12,13 @@ namespace BuildImage.Tests;
 public class BuildTests
 {
     // Red Hat ubi
-    [InlineData("ubi", "6.0")]
+    [InlineData("ubi", "7.0")]
     // Microsoft default
-    [InlineData("", "6.0")]
+    [InlineData("", "7.0")]
     // Microsoft alpine
-    [InlineData("alpine", "6.0")]
+    [InlineData("alpine", "7.0")]
     // Microsoft jammy-chiseled
-    [InlineData("jammy-chiseled", "6.0")]
+    // [InlineData("jammy-chiseled", "7.0")] // Chiseled images are not yet available for .NET 7.0.
     [Theory]
     public async Task Build(string flavor, string version)
     {
@@ -58,9 +58,9 @@ public class BuildTests
     }
 
     // Red Hat ubi
-    [InlineData("ubi", "s390x", "6.0")]
+    [InlineData("ubi", "s390x", "7.0")]
     // Microsoft default
-    [InlineData("", "arm64", "6.0")]
+    [InlineData("", "arm64", "7.0")]
     [Theory]
     public async Task Architecture(string flavor, string arch, string version)
     {
