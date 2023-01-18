@@ -11,7 +11,7 @@ class BuildCommand : RootCommand
         var asfileOption = new Option<string>( "--as-file", "Generates a Containerfile with the specified name");
         var printOption = new Option<bool>("--print", "Print the Containerfile") { Arity = ArgumentArity.Zero };
         var pushOption = new Option<bool>("--push", "After the build, push the image to the repository") { Arity = ArgumentArity.Zero };
-        var archOption = new Option<string>(new[] { "--arch", "-a" }, $"Target architecture ('x64'/'arm64'/'s390x')\nThe base image needs to support the selected architecture");
+        var archOption = new Option<string>(new[] { "--arch", "-a" }, $"Target architecture ('x64'/'arm64'/'s390x'/'ppc64le')\nThe base image needs to support the selected architecture");
         var contextOption = new Option<string>(new[] { "--context" }, getDefaultValue: () => ".", "Context directory for the build");
         var portableOption = new Option<bool>("--portable", "Avoid using features that make the Containerfile not portable") { Arity = ArgumentArity.Zero };
 
@@ -275,6 +275,7 @@ class BuildCommand : RootCommand
             "x64" => "linux/amd64",
             "arm64" => "linux/arm64",
             "s390x" => "linux/s390x",
+            "ppc64le" => "linux/ppc64le",
             _ => null,
         };
         return platform is not null;

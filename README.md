@@ -59,7 +59,7 @@ Arguments:
 Options:
   -b, --base <base>    Flavor of the base image
   -t, --tag <tag>      Name for the built image [default: dotnet-app]
-  -a, --arch <arch>    Target architecture ('x64'/'arm64'/'s390x')
+  -a, --arch <arch>    Target architecture ('x64'/'arm64'/'s390x'/'ppc64le')
                        The base image needs to support the selected architecture
   --push               After the build, push the image to the repository
   --portable           Avoid using features that make the Containerfile not portable
