@@ -189,6 +189,9 @@ class BuildCommand : RootCommand
         ResolvedImages resolvedImages = ImageDatabase.Resolve(new Flavor(baseFlavor), sdkFlavor, dotnetVersion, sdkVersion);
         buildOptions.RuntimeImage = resolvedImages.BaseImage;
         buildOptions.SdkImage = resolvedImages.SdkImage;
+        buildOptions.BaseImageAppUser = resolvedImages.BaseImageAppUser;
+        buildOptions.BaseImageAppGroup = resolvedImages.BaseImageAppGroup;
+        buildOptions.BaseImageRunsAsAppUser = resolvedImages.BaseImageRunsAsAppUser;
         if (containerEngine is not null)
         {
             buildOptions.SupportsCacheMount = containerEngine.SupportsCacheMount;
