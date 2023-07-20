@@ -44,7 +44,7 @@ class DotnetContainerfileBuilder
         sb.AppendLine("USER 0");
 
         // Ensure uid and gid are known by the target image.
-        sb.AppendLine($"COPY --from={fromImage} /etc/passwd /etc/group /scratch/etc");
+        sb.AppendLine($"COPY --from={fromImage} /etc/passwd /etc/group /scratch/etc/");
         sb.AppendLine($"RUN grep \":$GID:\" /scratch/etc/group || echo \"app:x:$GID:\" >>/scratch/etc/group && mkdir -p {TargetRoot}/etc && cp /scratch/etc/group {TargetRoot}/etc && \\");
         sb.AppendLine($"    grep \":x:$UID:\" /scratch/etc/passwd || echo \"app:x:$UID:$GID::{HomeDir}:/usr/sbin/nologin\" >>/scratch/etc/passwd && mkdir -p {TargetRoot}/etc && cp /scratch/etc/passwd {TargetRoot}/etc");
         // Create a home directory.
