@@ -15,16 +15,25 @@ class ResolvedImages
 {
     public string BaseImage { get; init; } = null!;
     public string SdkImage { get; init; } = null!;
+    public int? BaseImageAppUser { get; init; }
+    public int? BaseImageAppGroup { get; init; }
+    public bool BaseImageRunsAsAppUser { get; init; }
 }
 
 class ImageDatabase
 {
     public static ResolvedImages Resolve(Flavor baseFlavor, Flavor? sdkFlavor, string runtimeVersion, string sdkVersion)
     {
+        string baseImage = ResolveImage(baseFlavor, runtimeVersion, isSdk: false, out string resolvedFlavor);
+        string sdkImage = ResolveImage(sdkFlavor ?? new Flavor(resolvedFlavor), sdkVersion, isSdk: true, out _);
+        bool isRedHatImage = baseImage.Contains("redhat.com");
         return new ResolvedImages()
         {
-            BaseImage = ResolveImage(baseFlavor, runtimeVersion, isSdk: false, out string resolvedFlavor),
-            SdkImage = ResolveImage(sdkFlavor ?? new Flavor(resolvedFlavor), sdkVersion, isSdk: true, out _)
+            BaseImage = baseImage,
+            SdkImage = sdkImage,
+            BaseImageRunsAsAppUser = isRedHatImage,
+            BaseImageAppUser  = isRedHatImage ? 1001 : null,
+            BaseImageAppGroup  = isRedHatImage ? 0 : null
         };
     }
 
