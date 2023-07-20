@@ -154,7 +154,7 @@ class BuildCommand : RootCommand
             }
             else
             {
-                string t = projectInformation.ContainerImageTag ?? projectInformation.Version ?? "latest";
+                string t = projectInformation.ContainerImageTag ?? "latest";
                 tags.Add($"{name}:{t}");
             }
         }

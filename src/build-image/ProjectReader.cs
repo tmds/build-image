@@ -5,8 +5,6 @@ class ProjectInformation
     public string? DotnetVersion { get; set; }
     public string? AssemblyName { get; set; }
 
-    public string? Version { get; set; }
-
     // Match properties of built-in sdk support
     // See https://github.com/dotnet/sdk-container-builds/blob/main/docs/ContainerCustomization.md.
     public string? ContainerImageTag { get; set; }
@@ -54,7 +52,6 @@ class ProjectReader
             ContainerRegistry = GetProperty(project, "ContainerRegistry"),
             ContainerBaseImage = GetProperty(project, "ContainerBaseImage"),
             ContainerWorkingDirectory = GetProperty(project, "ContainerWorkingDirectory"),
-            Version = GetProperty(project, "Version"),
 
             ContainerImageArchitecture = GetProperty(project, "ContainerImageArchitecture"),
             ContainerSdkImage = GetProperty(project, "ContainerSdkImage"),
