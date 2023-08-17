@@ -62,7 +62,7 @@ public class BuildTests
     // Microsoft default
     [InlineData("", "arm64", "7.0")]
     [Theory]
-    public async Task Architecture(string flavor, string arch, string version)
+    public void Architecture(string flavor, string arch, string version)
     {
         string imageTag = $"build-test-{flavor}-{arch}-{version}";
         string projectFolder = $"webprojects/{version}";
