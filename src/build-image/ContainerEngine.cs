@@ -2,6 +2,8 @@ using System.CommandLine;
 using System.CommandLine.IO;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Diagnostics.CodeAnalysis;
 
 [Flags]
 enum ContainerEngineFeature
@@ -21,6 +23,41 @@ class ContainerEngine
     private ContainerEngineFeature _disabledFeatures;
 
     private bool IsDisabled(ContainerEngineFeature feature) => (_disabledFeatures & ContainerEngineFeature.CacheMounts) != 0;
+
+    public bool IsAvailable([NotNullWhen(false)]out string? errorMessage)
+    {
+        errorMessage = null;
+
+        // Don't check for podman as it doesn't hava a daemon that should be running.
+        if (Command == Podman)
+        {
+            return true;
+        }
+
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = Command,
+            ArgumentList = { "info", "-f", "{{ json . }}" },
+            RedirectStandardError = true,
+            RedirectStandardOutput = true
+        })!;
+        process.WaitForExit();
+        string stdout = process.StandardOutput.ReadToEnd().Trim();
+        JsonDocument doc = JsonDocument.Parse(stdout);
+        if (!doc.RootElement.TryGetProperty("ServerErrors", out JsonElement serverErrors))
+        {
+            return true;
+        }
+        else if (serverErrors.ValueKind == JsonValueKind.Array && serverErrors.GetArrayLength() == 0)
+        {
+            return true;
+        }
+        else
+        {
+            errorMessage = string.Join(Environment.NewLine, serverErrors.EnumerateArray());
+            return false;
+        }
+    }
 
     public bool SupportsCacheMount
     {

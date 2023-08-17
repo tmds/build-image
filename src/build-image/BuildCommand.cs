@@ -45,10 +45,19 @@ class BuildCommand : RootCommand
         }
 
         ContainerEngine? containerEngine = ContainerEngine.TryCreate(disabledFeatures);
-        if (containerEngine is null && asfile is null)
+        if (asfile is null)
         {
-            console.Error.WriteLine("Install podman or docker to build images.");
-            return 1;
+            if (containerEngine is null)
+            {
+                console.Error.WriteLine("Install podman or docker to build images.");
+                return 1;
+            }
+            else if (!containerEngine.IsAvailable(out string? errorMessage))
+            {
+                console.Error.WriteLine($"{containerEngine.Command} is unavailable:");
+                console.Error.WriteLine(errorMessage);
+                return 1;
+            }
         }
 
         contextDir ??= Directory.GetCurrentDirectory();
