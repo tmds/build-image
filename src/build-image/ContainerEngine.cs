@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.IO;
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Diagnostics.CodeAnalysis;
@@ -34,16 +32,9 @@ class ContainerEngine
             return true;
         }
 
-        using var process = Process.Start(new ProcessStartInfo
-        {
-            FileName = Command,
-            ArgumentList = { "info", "-f", "{{ json . }}" },
-            RedirectStandardError = true,
-            RedirectStandardOutput = true
-        })!;
-        process.WaitForExit();
-        string stdout = process.StandardOutput.ReadToEnd().Trim();
-        JsonDocument doc = JsonDocument.Parse(stdout);
+        StringBuilder stdout = new();
+        ProcessRunner.Run(Command, new[] { "info", "-f", "{{ json . }}" }, stdout);
+        JsonDocument doc = JsonDocument.Parse(stdout.ToString());
         if (!doc.RootElement.TryGetProperty("ServerErrors", out JsonElement serverErrors))
         {
             return true;
@@ -98,16 +89,9 @@ class ContainerEngine
         {
             try
             {
-                using var process = Process.Start(new ProcessStartInfo
-                {
-                    FileName = cmd,
-                    ArgumentList = { "version", "-f", "{{ .Client.Version }}" },
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
-                })!;
-                process.WaitForExit();
-                string stdout = process.StandardOutput.ReadToEnd().Trim();
-                Version.TryParse(stdout, out version);
+                StringBuilder stdout = new();
+                ProcessRunner.Run(cmd, new[] { "version", "-f", "{{ .Client.Version }}" });
+                Version.TryParse(stdout.ToString(), out version);
                 command = cmd;
                 break;
             }
@@ -200,50 +184,6 @@ class ContainerEngine
         }
 
         public int Run(IConsole console)
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = FileName,
-                RedirectStandardError = true,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true
-            };
-
-            foreach (var arg in Arguments)
-            {
-                psi.ArgumentList.Add(arg);
-            }
-
-            foreach (var env in EnvironmentVariables)
-            {
-                psi.Environment[env.Item1] = env.Item2;
-            }
-
-            using var process = Process.Start(psi)!;
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (e.Data is not null)
-                {
-                    console.Error.WriteLine(e.Data);
-                }
-            };
-
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if (e.Data is not null)
-                {
-                    console.Out.WriteLine(e.Data);
-                }
-            };
-
-            process.StandardInput.Close();
-            process.BeginErrorReadLine();
-            process.BeginOutputReadLine();
-
-            process.WaitForExit();
-
-            return process.ExitCode;
-        }
+            => ProcessRunner.Run(FileName, Arguments, ProcessRunner.WriteToConsoleOut, ProcessRunner.WriteToConsoleOut, EnvironmentVariables.Select(envvar => new KeyValuePair<string, string>(envvar.Item1, envvar.Item2)));
     }
 }
