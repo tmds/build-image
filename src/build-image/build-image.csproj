@@ -12,7 +12,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
     <PackageId>dotnet-build-image</PackageId>
-    <VersionPrefix>0.5.2</VersionPrefix>
+    <VersionPrefix>0.5.3</VersionPrefix>
     <Description>Build a container image from a .NET project.</Description>
     <PackageTags>container;image;podman;docker</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
